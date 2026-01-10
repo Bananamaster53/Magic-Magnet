@@ -128,6 +128,7 @@ function App() {
   };
 
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const productsTotal = cartTotal;
 
   // Várakozás, amíg a useEffect beolvassa a user-t
   if (loading) return <div className="loading-screen">Betöltés...</div>;
