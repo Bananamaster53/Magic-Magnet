@@ -43,9 +43,11 @@ io.on("connection", (socket) => {
 });
 
 // Adatbázis
-mongoose.connect('mongodb://127.0.0.1:27017/magnetshop')
-  .then(() => console.log('✅ MongoDB OK'))
-  .catch(err => console.error('❌ DB Hiba:', err));
+const db = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/webshop';
+
+mongoose.connect(db)
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.log(err));
 
 // Útvonalak
 app.use('/api/magnets', magnetRoutes);
