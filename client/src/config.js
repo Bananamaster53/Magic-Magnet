@@ -11,4 +11,4 @@ const isLocalhost = hostname === "localhost" ||
 // Ha élesben, akkor a Renderes linket használja.
 export const API_URL = isLocalhost 
   ? `http://${hostname}:5000/api` 
-  : "https://magnes-mester-backend.onrender.com/api";
+  : "https://magic-magnet-backend.onrender.com/api";
