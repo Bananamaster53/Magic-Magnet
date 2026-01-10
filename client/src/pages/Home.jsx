@@ -33,8 +33,12 @@ const Home = ({ magnets, addToCart }) => {
               <div className="image-container">
                 {/* ITT A JAVÍTÁS: Ha nincs imageUrl, vagy üres, akkor a placeholdert használjuk */}
                 <img 
-                  src={magnet.imageUrl.startsWith('http') ? magnet.imageUrl : `${serverBase}${magnet.imageUrl}`} 
+                  // CSAK a magnet.imageUrl-t használd, ne írj elé API_URL-t vagy localhost-ot!
+                  src={magnet.imageUrl} 
                   alt={magnet.name} 
+                  style={{ width: '100%', height: '200px', objectFit: 'cover' }}
+                  // Hibakezelés: ha véletlenül mégis rossz a link, mutasson egy alap képet
+                  onError={(e) => { e.target.src = 'https://via.placeholder.com/200'; }}
                 />
               </div>
               
