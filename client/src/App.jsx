@@ -21,7 +21,7 @@ import './App.css';
 
 function App() {
   const [magnets, setMagnets] = useState([]);
-  const [customImage, setCustomImage] = useState(null);
+  const [customImages, setCustomImages] = useState([]);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -338,7 +338,7 @@ function App() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="checkout-section">
                    <h3>📝 Megjegyzés (opcionális)</h3>
                    <textarea rows="2" placeholder="Megjegyzés a rendeléshez..." value={orderNote} onChange={(e) => setOrderNote(e.target.value)} className="note-input"></textarea>
