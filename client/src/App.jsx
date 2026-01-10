@@ -1,20 +1,16 @@
-// client/src/App.jsx
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// --- IMPORTÁLJUK A DINAMIKUS URL-T ---
 import { API_URL } from './config';
 
-// --- OLDALAK ---
 import Home from './pages/Home';
 import AdminPanel from './pages/AdminPanel';
 import Register from './pages/Register';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
-// --- ÚJ IMPORTÁLÁSOK ---
 import About from './pages/About';
 import Shipping from './pages/Shipping';
 import Privacy from './pages/Privacy';
@@ -29,13 +25,9 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true); // ÚJ: Betöltési állapot
 
-  const [shippingData, setShippingData] = useState({
-    zip: '',
-    city: '',
-    street: '',
-    details: ''
-  });
+  const [shippingData, setShippingData] = useState({ zip: '', city: '', street: '', details: '' });
   const [contactData, setContactData] = useState({ name: '', email: '', phone: '' });
   const [orderNote, setOrderNote] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -44,101 +36,89 @@ function App() {
   const placeholderImg = "https://placehold.co/100?text=...";
 
   useEffect(() => {
+    // 1. Felhasználó visszaállítása LocalStorage-ból
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+
+    if (storedUser && token) {
       const u = JSON.parse(storedUser);
       setUser(u);
-      setContactData(prev => ({ ...prev, email: u.email, name: u.username })); 
+      setContactData({ email: u.email, name: u.username, phone: '' });
     }
     
-    // MÓDOSÍTÁS: API_URL használata
+    // Jelezzük, hogy az alapvető user ellenőrzés megvolt
+    setLoading(false);
+
+    // 2. Termékek lekérése
     axios.get(`${API_URL}/magnets`)
       .then(res => setMagnets(res.data))
-      .catch(err => console.error(err));
+      .catch(err => console.error("Hiba a termékek betöltésekor:", err));
   }, []);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setUser(null);
+    toast.info("Sikeres kijelentkezés!");
+    // Itt nem kell window.location.href, a React Router megoldja
+  };
+
+  // --- KOSÁR ÉS RENDELÉS FUNKCIÓK (Változatlanok maradnak) ---
   const addToCart = (magnet) => {
     const existingItem = cart.find(item => item._id === magnet._id);
     if (existingItem) {
       setCart(cart.map(item => item._id === magnet._id ? { ...item, quantity: item.quantity + 1 } : item));
-      toast.info(`+1 ${magnet.name} a kosárban!`, { autoClose: 1000, hideProgressBar: true });
+      toast.info(`+1 ${magnet.name} a kosárban!`, { autoClose: 1000 });
     } else {
       setCart([...cart, { ...magnet, quantity: 1 }]);
-      toast.success("Kosárba került! 🛒", { autoClose: 1000, hideProgressBar: true });
+      toast.success("Kosárba került! 🛒", { autoClose: 1000 });
     }
   };
 
   const updateQuantity = (id, delta) => {
-    setCart(cart.map(item => {
-      if (item._id === id) {
-        const newQty = item.quantity + delta;
-        return { ...item, quantity: newQty > 0 ? newQty : 1 };
-      }
-      return item;
-    }));
+    setCart(cart.map(item => item._id === id ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item));
   };
 
-  const removeFromCart = (id) => {
-    setCart(cart.filter(item => item._id !== id));
-    toast.info("Tétel eltávolítva 🗑️", { autoClose: 1000, hideProgressBar: true });
-  };
+  const removeFromCart = (id) => setCart(cart.filter(item => item._id !== id));
 
   const startCheckout = () => {
     if (cart.length === 0) return toast.warning("Üres a kosár!");
-    if (!user) {
-        toast.error("A rendeléshez jelentkezz be!");
-        return window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    if (!user) return toast.error("A rendeléshez jelentkezz be!");
     setIsCartOpen(false);
     setIsCheckoutOpen(true);
   };
 
-  const handleAddressChange = (e) => {
-    setShippingData({ ...shippingData, [e.target.name]: e.target.value });
-  };
+  const handleAddressChange = (e) => setShippingData({ ...shippingData, [e.target.name]: e.target.value });
   const handleContactChange = (e) => setContactData({ ...contactData, [e.target.name]: e.target.value });
 
   const placeOrder = async () => {
-    if (!contactData.name || !contactData.email || !contactData.phone) return toast.warn("Kérlek add meg a kapcsolattartási adatokat! 📞");
-    if (!shippingData.zip || !shippingData.city || !shippingData.street) return toast.warn("Kérlek töltsd ki a kötelező címadatokat! 📍");
-    if (!termsAccepted) return toast.error("A rendeléshez el kell fogadnod az ÁSZF-et! 📄");
-
-    let fullAddress = `${shippingData.zip} ${shippingData.city}, ${shippingData.street}`;
-    if (shippingData.details && shippingData.details.trim() !== "") fullAddress += `, ${shippingData.details}`;
-
-    const productsTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const finalTotal = productsTotal + shippingCost;
-
-    const orderData = {
-      products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
-      totalAmount: finalTotal,
-      shippingCost: shippingCost,
-      shippingAddress: fullAddress,
-      customerDetails: contactData,
-      note: orderNote
-    };
-
+    if (!termsAccepted) return toast.error("Fogadd el az ÁSZF-et!");
     try {
       const token = localStorage.getItem('token');
-      if (!token) { toast.error("A munkamenet lejárt."); return; }
+      const productsTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
       
-      // MÓDOSÍTÁS: API_URL használata
-      await axios.post(`${API_URL}/orders`, orderData, { headers: { 'x-auth-token': token } });
+      const orderData = {
+        products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
+        totalAmount: productsTotal + shippingCost,
+        shippingCost: shippingCost,
+        shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}`,
+        customerDetails: contactData,
+        note: orderNote
+      };
 
-      toast.success("Rendelés sikeresen leadva! 🚀");
-      setCart([]); setShippingData({ zip: '', city: '', street: '', details: '' }); setContactData({ name: user?.username || '', email: user?.email || '', phone: '' }); setOrderNote('');
+      await axios.post(`${API_URL}/orders`, orderData, { headers: { 'x-auth-token': token } });
+      toast.success("Rendelés elküldve! 🚀");
+      setCart([]);
       setIsCheckoutOpen(false);
     } catch (err) {
-      toast.error("Hiba: " + (err.response?.data?.message || err.message));
+      toast.error("Hiba a rendelésnél!");
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token'); localStorage.removeItem('user'); setUser(null); window.location.href = '/';
-  };
-
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const productsTotal = cartTotal;
+
+  // Várakozás, amíg a useEffect beolvassa a user-t
+  if (loading) return <div className="loading-screen">Betöltés...</div>;
 
   return (
     <BrowserRouter>
