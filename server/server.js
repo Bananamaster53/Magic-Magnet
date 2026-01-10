@@ -13,6 +13,7 @@ const Magnet = require('./models/Magnet');
 const Order = require('./models/Order'); // Beimportálva a rendeléshez
 
 const authRoutes = require('./routes/authRoutes');
+const auth = require('./middleware/auth');
 const orderRoutes = require('./routes/orderRoutes');
 
 const app = express();
@@ -69,21 +70,19 @@ app.post('/api/magnets', upload.single('image'), async (req, res) => {
 });
 
 // 2. RENDELÉS LEADÁS (Vásárló oldali, TÖBB egyedi kép)
-app.post('/api/orders', upload.array('customImages', 10), async (req, res) => {
+app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res) => {
   try {
-    // A frontend FormData-ban küldi az 'orderData' JSON-t stringként
     const orderInfo = JSON.parse(req.body.orderData);
-    
-    // Kinyerjük az összes feltöltött kép elérési útját
     const uploadedImages = req.files ? req.files.map(file => file.path) : [];
 
     const newOrder = new Order({
       ...orderInfo,
-      customImages: uploadedImages // A modellben ez [String] típusú kell legyen!
+      user: req.user.id, // EZ A KULCS: összeköti a rendelést a userrel
+      customImages: uploadedImages
     });
 
     await newOrder.save();
-    console.log("Sikeres rendelés mentve", uploadedImages.length, "képpel.");
+    console.log("Sikeres rendelés mentve a felhasználóhoz:", req.user.id);
     res.status(201).json(newOrder);
   } catch (err) {
     console.error("Rendelés mentési hiba:", err);
