@@ -59,9 +59,11 @@ const sendMessage = async () => {
           <div style={styles.footer}>
             <input 
               type="text" 
-              value={message} 
+              // JAVÍTÁS: message helyett currentMessage
+              value={currentMessage} 
               placeholder="Írj valamit..."
-              onChange={(e) => setMessage(e.target.value)}
+              // JAVÍTÁS: setMessage helyett setCurrentMessage
+              onChange={(e) => setCurrentMessage(e.target.value)} 
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               style={styles.input}
             />
