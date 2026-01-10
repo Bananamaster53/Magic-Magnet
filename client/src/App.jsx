@@ -106,8 +106,10 @@ function App() {
 
     // Hozzáadjuk a fájlt és az adatokat a FormData-hoz
     formData.append('orderData', JSON.stringify(orderData));
-    if (customImage) {
-      formData.append('customImage', customImage);
+    if (customImages && customImages.length > 0) {
+      Array.from(customImages).forEach(file => {
+        formData.append('customImages', file); // Fontos a többes szám!
+      });
     }
 
     try {
@@ -129,6 +131,7 @@ function App() {
 
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const productsTotal = cartTotal;
+  const finalTotal = productsTotal + shippingCost;
 
   // Várakozás, amíg a useEffect beolvassa a user-t
   if (loading) return <div className="loading-screen">Betöltés...</div>;
