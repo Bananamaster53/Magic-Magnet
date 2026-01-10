@@ -376,9 +376,20 @@ function App() {
 
                 <div className="legal-section">
                   <label className="checkbox-label">
-                    <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-                    <span>Elfogadom az <Link to="/terms" target="_blank">ÁSZF</Link>-et és az <Link to="/privacy" target="_blank">Adatvédelmit</Link>.</span>
+                    <input 
+                      type="checkbox" 
+                      checked={termsAccepted} 
+                      onChange={(e) => setTermsAccepted(e.target.checked)} 
+                    />
+                    <span>
+                      Elfogadom az <Link to="/terms" target="_blank">Általános Szerződési Feltételeket</Link> és az <Link to="/privacy" target="_blank">Adatkezelési Tájékoztatót</Link>.
+                    </span>
                   </label>
+                  
+                  {/* Ez az új rész a kép alapján */}
+                  <div className="legal-text" style={{ marginTop: '15px', fontSize: '0.85rem', color: '#475569', fontStyle: 'italic' }}>
+                    A "Rendelés leadása" gomb megnyomásával Ön tudomásul veszi, hogy a rendelés <strong>fizetési kötelezettséggel jár</strong>.
+                  </div>
                 </div>
               </div>
 

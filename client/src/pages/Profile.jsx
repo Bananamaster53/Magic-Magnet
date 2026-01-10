@@ -2,29 +2,28 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-// IMPORT
 import { API_URL } from '../config';
 
 const Profile = () => {
-  const [user, setUser] = useState(null);
+  // JAVÍTÁS: Kezdeti állapot beállítása a localStorage-ból
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [myOrders, setMyOrders] = useState([]);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) setUser(JSON.parse(storedUser));
-    
     const fetchOrders = async () => {
       try {
         const token = localStorage.getItem('token');
-        if(!token) return;
+        if (!token) return;
 
-        // VÁLTOZÁS: API_URL
         const res = await axios.get(`${API_URL}/orders/mine`, {
           headers: { 'x-auth-token': token }
         });
         setMyOrders(res.data);
       } catch (err) {
-        console.error(err);
+        console.error("Nem sikerült betölteni a rendeléseket:", err);
       }
     };
     fetchOrders();
@@ -41,7 +40,7 @@ const Profile = () => {
     }
   };
 
-  if (!user) return <div className="container">Kérlek jelentkezz be!</div>;
+  if (!user) return <div className="container" style={{padding: '50px', textAlign: 'center'}}>Kérlek jelentkezz be a profilod megtekintéséhez!</div>;
 
   return (
     <div className="container" style={{ padding: '40px 20px', maxWidth: '800px' }}>
@@ -96,6 +95,20 @@ const Profile = () => {
                    </div>
                 </div>
               </div>
+
+              {/* --- ÚJ: EGYEDI KÉPEK MEGJELENÍTÉSE --- */}
+              {order.customImages && order.customImages.length > 0 && (
+                <div style={{ marginBottom: '15px', background: '#f1f5f9', padding: '10px', borderRadius: '8px' }}>
+                  <small style={{display:'block', marginBottom: '5px', color:'#64748b', fontWeight:'bold'}}>Feltöltött fotóid:</small>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {order.customImages.map((img, idx) => (
+                      <a key={idx} href={img} target="_blank" rel="noreferrer">
+                        <img src={img} alt="egyedi kép" style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <div style={{marginBottom:'15px'}}>
                 <ul style={{listStyle:'none', padding:0, margin:0}}>
