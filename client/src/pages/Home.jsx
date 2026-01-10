@@ -1,9 +1,11 @@
 // client/src/pages/Home.jsx
 import React from 'react';
+import { API_URL } from '../config';
 
 const Home = ({ magnets, addToCart }) => {
   // Helyettesítő kép, ha nincs feltöltve semmi
   const placeholderImg = "https://placehold.co/400x300?text=Nincs+Kép";
+  const serverBase = API_URL.replace('/api', '');
 
   return (
     <div>
@@ -31,9 +33,8 @@ const Home = ({ magnets, addToCart }) => {
               <div className="image-container">
                 {/* ITT A JAVÍTÁS: Ha nincs imageUrl, vagy üres, akkor a placeholdert használjuk */}
                 <img 
-                  src={magnet.imageUrl && magnet.imageUrl.length > 0 ? magnet.imageUrl : placeholderImg} 
+                  src={magnet.imageUrl.startsWith('http') ? magnet.imageUrl : `${serverBase}${magnet.imageUrl}`} 
                   alt={magnet.name} 
-                  onError={(e) => { e.target.src = placeholderImg; }} // Ha a kép link törött, akkor is cserélje le
                 />
               </div>
               

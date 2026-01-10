@@ -237,7 +237,7 @@ function App() {
 
           </div>
           <div className="footer-bottom">
-            <p>© 2024 Mágnes Mester Webshop. Minden jog fenntartva.</p>
+            <p>© 2024 Magic Magnet Hungary. Minden jog fenntartva.</p>
           </div>
         </footer>
 
