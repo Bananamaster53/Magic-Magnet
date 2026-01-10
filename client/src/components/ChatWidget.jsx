@@ -1,9 +1,11 @@
 // client/src/components/ChatWidget.jsx
 import React, { useState, useEffect } from 'react';
 import io from 'socket.io-client';
+import { API_URL } from "../config";
 
 // Kapcsolódás a szerverhez
-const socket = io.connect("http://192.168.1.153:5173");
+const socketEndpoint = API_URL.replace('/api', ''); 
+const socket = io(API_URL.replace('/api', ''));
 
 const ChatWidget = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);

@@ -11,7 +11,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('${API_URL}/auth/login', formData);
+      const res = await axios.post(`${API_URL}/auth/login`, formData);
       
       // 1. Token mentése a böngészőbe (LocalStorage)
       localStorage.setItem('token', res.data.token);

@@ -11,7 +11,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('${API_URL}/auth/register', formData);
+      await axios.post(`${API_URL}/auth/register`, formData);
       alert("Sikeres regisztráció! Most jelentkezz be.");
       navigate('/login'); // Átirányítás a belépéshez
     } catch (err) {
