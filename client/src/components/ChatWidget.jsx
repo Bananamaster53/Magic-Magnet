@@ -31,7 +31,7 @@ const sendMessage = async () => {
   useEffect(() => {
     // Figyeljük a beérkező üzeneteket
     socket.on("receive_message", (data) => {
-      setMessageList((list) => [...list, data]);
+      setMessages((list) => [...list, data]); // 2. Itt frissíted
     });
   }, []);
 
@@ -48,7 +48,7 @@ const sendMessage = async () => {
           </div>
           
           <div style={styles.body}>
-            {messageList.map((msg, index) => (
+            {messages.map((msg, index) => (
               <div key={index} style={msg.isAdmin ? styles.adminMsg : styles.userMsg}>
                 <small style={{fontSize: '10px', color: '#555'}}>{msg.author} ({msg.time})</small>
                 <div>{msg.message}</div>
