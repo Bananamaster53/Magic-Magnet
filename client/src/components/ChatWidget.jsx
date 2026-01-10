@@ -3,19 +3,27 @@ import React, { useState, useEffect } from 'react';
 import { io } from "socket.io-client";
 import { API_URL } from "../config";
 
-// Kapcsolódás a szerverhez
-const socketEndpoint = API_URL.replace('/api', ''); 
 const socketURL = API_URL.replace('/api', '');
-
-const socket = io(socketURL, {
-  transports: ["websocket", "polling"], // Erőltetjük a stabilabb websocketet
-  withCredentials: true // Fontos az éles szerverhez
-});
+const socket = io(socketURL, { transports: ["websocket", "polling"] });
 
 const ChatWidget = ({ user }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messageList, setMessageList] = useState([]);
+  // 1. Ellenőrizd, hogy ez a sor pontosan így megvan-e!
+  const [currentMessage, setCurrentMessage] = useState(""); 
+  const [messages, setMessages] = useState([]);
+
+const sendMessage = async () => {
+    // Itt volt a hiba: ha a változó neve más, vagy nincs definiálva, elszáll a kód.
+    if (currentMessage !== "") {
+      const messageData = {
+        author: user?.username || "Vendég",
+        message: currentMessage,
+        time: new Date().toLocaleTimeString(),
+      };
+
+      await socket.emit("send_message", messageData);
+      setCurrentMessage(""); // Kiürítjük az inputot küldés után
+    }
+  };
 
   useEffect(() => {
     // Figyeljük a beérkező üzeneteket
@@ -24,18 +32,6 @@ const ChatWidget = ({ user }) => {
     });
   }, []);
 
-  const sendMessage = () => {
-    const messageData = {
-      author: user.username,
-      message: currentMessage,
-      time: new Date().toLocaleTimeString()
-    };
-
-    socket.emit("send_message", messageData); // Elküldjük a szervernek
-    // NEM KELL ide külön setMessages, mert a szerver (io.emit) 
-    // mindenkinek visszaküldi, neked is!
-    setCurrentMessage(""); 
-  };
 
   return (
     <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 999 }}>
