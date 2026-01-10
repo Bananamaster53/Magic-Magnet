@@ -4,12 +4,15 @@ const mongoose = require('mongoose');
 const OrderSchema = new mongoose.Schema({
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   
-  // Vevő adatai (FONTOS: ez az új rész!)
   customerDetails: {
     name: { type: String, required: true },
     email: { type: String, required: true },
-    phone: { type: String, required: true }
+    phone: { type: String, required: true },
+    // INNEN TÖRÖLD KI!
   },
+
+  // IDE TEDD BE (Fő szintre):
+  customImages: [{ type: String }],
 
   products: [
     {
