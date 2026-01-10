@@ -33,8 +33,12 @@ function App() {
   const [orderNote, setOrderNote] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const shippingCost = 1990;
+  const shippingCost = 990;
   const placeholderImg = "https://placehold.co/100?text=...";
+
+  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  const productsTotal = cartTotal;
+  const finalTotal = productsTotal + shippingCost;
 
   useEffect(() => {
     // 1. Felhasználó visszaállítása LocalStorage-ból
@@ -93,45 +97,48 @@ function App() {
   const handleContactChange = (e) => setContactData({ ...contactData, [e.target.name]: e.target.value });
 
   const placeOrder = async () => {
+    if (!termsAccepted) return toast.error("A rendeléshez el kell fogadnod az ÁSZF-et!");
+
     const formData = new FormData();
     
+    // Itt állítjuk össze az adatokat közvetlenül a küldés előtt
     const orderData = {
       products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
-      totalAmount: productsTotal + shippingCost,
+      totalAmount: finalTotal,
       shippingCost,
-      shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}`,
+      shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}${shippingData.details ? ', ' + shippingData.details : ''}`,
       customerDetails: contactData,
       note: orderNote
     };
 
-    // Hozzáadjuk a fájlt és az adatokat a FormData-hoz
     formData.append('orderData', JSON.stringify(orderData));
+
     if (customImages && customImages.length > 0) {
-      Array.from(customImages).forEach(file => {
-        formData.append('customImages', file); // Fontos a többes szám!
-      });
+      for (let i = 0; i < customImages.length; i++) {
+        formData.append('customImages', customImages[i]);
+      }
     }
 
     try {
       const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/orders`, formData, {
+      const response = await axios.post(`${API_URL}/orders`, formData, {
         headers: { 
           'x-auth-token': token,
-          'Content-Type': 'multipart/form-data' // Fontos a fájlküldéshez!
+          'Content-Type': 'multipart/form-data' 
         }
       });
-      toast.success("Rendelés elküldve! 🚀");
-      setCart([]);
-      setCustomImage(null);
-      setIsCheckoutOpen(false);
+
+      if (response.status === 201 || response.status === 200) {
+        toast.success("Rendelés sikeresen leadva! 🚀");
+        setCart([]);
+        setCustomImages([]);
+        setIsCheckoutOpen(false);
+      }
     } catch (err) {
-      toast.error("Hiba a rendelésnél!");
+      console.error("Hiba a küldésnél:", err);
+      toast.error("Hiba történt a rendelés során!");
     }
   };
-
-  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const productsTotal = cartTotal;
-  const finalTotal = productsTotal + shippingCost;
 
   // Várakozás, amíg a useEffect beolvassa a user-t
   if (loading) return <div className="loading-screen">Betöltés...</div>;
