@@ -81,9 +81,10 @@ app.use('/api/orders', orderRoutes);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "*", // Élesben ide írhatod majd a Netlify címedet
     methods: ["GET", "POST"]
-  }
+  },
+  transports: ["websocket", "polling"] // Mindkét módot engedélyezzük
 });
 
 io.on("connection", (socket) => {

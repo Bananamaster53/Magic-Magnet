@@ -1,11 +1,16 @@
 // client/src/components/ChatWidget.jsx
 import React, { useState, useEffect } from 'react';
-import io from 'socket.io-client';
+import { io } from "socket.io-client";
 import { API_URL } from "../config";
 
 // Kapcsolódás a szerverhez
 const socketEndpoint = API_URL.replace('/api', ''); 
-const socket = io(API_URL.replace('/api', ''));
+const socketURL = API_URL.replace('/api', '');
+
+const socket = io(socketURL, {
+  transports: ["websocket", "polling"], // Erőltetjük a stabilabb websocketet
+  withCredentials: true // Fontos az éles szerverhez
+});
 
 const ChatWidget = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,18 +24,17 @@ const ChatWidget = ({ user }) => {
     });
   }, []);
 
-  const sendMessage = async () => {
-    if (message !== "") {
-      const messageData = {
-        author: user ? user.username : "Vendég",
-        message: message,
-        time: new Date().toLocaleTimeString(),
-        isAdmin: user ? user.isAdmin : false
-      };
+  const sendMessage = () => {
+    const messageData = {
+      author: user.username,
+      message: currentMessage,
+      time: new Date().toLocaleTimeString()
+    };
 
-      await socket.emit("send_message", messageData);
-      setMessage("");
-    }
+    socket.emit("send_message", messageData); // Elküldjük a szervernek
+    // NEM KELL ide külön setMessages, mert a szerver (io.emit) 
+    // mindenkinek visszaküldi, neked is!
+    setCurrentMessage(""); 
   };
 
   return (
