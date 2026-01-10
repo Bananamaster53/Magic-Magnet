@@ -1,5 +1,5 @@
 // client/src/components/ChatWidget.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { io } from "socket.io-client";
 import { API_URL } from "../config";
 
@@ -7,8 +7,11 @@ const socketURL = API_URL.replace('/api', '');
 const socket = io(socketURL, { transports: ["websocket", "polling"] });
 
 const ChatWidget = ({ user }) => {
-  // 1. Ellenőrizd, hogy ez a sor pontosan így megvan-e!
-  const [currentMessage, setCurrentMessage] = useState(""); 
+  // 1. EZ A SOR HIÁNYOZHAT:
+  const [isOpen, setIsOpen] = useState(false); 
+  
+  // A korábbi hiba javítása (hogy ez se okozzon gondot):
+  const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
 const sendMessage = async () => {
