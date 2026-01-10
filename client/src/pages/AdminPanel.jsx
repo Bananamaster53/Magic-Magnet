@@ -1,0 +1,299 @@
+// client/src/pages/AdminPanel.jsx
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+// IMPORTÁLJUK A DYNAMIC URL-T
+import { API_URL } from '../config';
+
+const AdminPanel = () => {
+  const [magnets, setMagnets] = useState([]);
+  const [orders, setOrders] = useState([]);
+  
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [description, setDescription] = useState("");
+  const [file, setFile] = useState(null);
+  
+  const [editingId, setEditingId] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  const placeholderImg = "https://placehold.co/100?text=Nincs+Kep";
+
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      // VÁLTOZÁS: API_URL
+      const productRes = await axios.get(`${API_URL}/magnets`);
+      setMagnets(productRes.data);
+      
+      // VÁLTOZÁS: API_URL
+      const orderRes = await axios.get(`${API_URL}/orders/all`, {
+        headers: { 'x-auth-token': token }
+      });
+      setOrders(orderRes.data.reverse());
+    } catch (err) {
+      console.error(err);
+      if(err.response && err.response.status === 401) {
+         toast.error("Lejárt a munkamenet! Jelentkezz be újra.");
+      }
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleStatusChange = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      // VÁLTOZÁS: API_URL
+      await axios.put(`${API_URL}/orders/${orderId}/status`, 
+        { status: newStatus },
+        { headers: { 'x-auth-token': token } }
+      );
+      toast.success(`Állapot frissítve: ${newStatus} ✅`);
+      fetchData(); 
+    } catch (err) {
+      toast.error("Hiba az állapot frissítésénél");
+    }
+  };
+
+  const handleDeleteOrder = async (orderId) => {
+    if(!window.confirm("Biztosan VÉGLEGESEN törlöd ezt a rendelést az adatbázisból?")) return;
+    try {
+      const token = localStorage.getItem('token');
+      // VÁLTOZÁS: API_URL
+      await axios.delete(`${API_URL}/orders/${orderId}`, {
+        headers: { 'x-auth-token': token }
+      });
+      toast.info("Rendelés törölve 🗑️");
+      fetchData();
+    } catch (err) {
+      toast.error("Hiba a törlésnél: " + err.message);
+    }
+  };
+
+  const filteredOrders = orders.filter(order => {
+    if (showArchived) return true;
+    return order.status !== 'Teljesítve' && order.status !== 'Törölve';
+  });
+
+  const getStatusColor = (status) => {
+    switch(status) {
+      case 'Feldolgozás alatt': return '#f59e0b'; 
+      case 'Csomagolás': return '#3b82f6'; 
+      case 'Szállítás alatt': return '#8b5cf6'; 
+      case 'Teljesítve': return '#10b981'; 
+      case 'Törölve': return '#ef4444'; 
+      default: return '#64748b'; 
+    }
+  };
+
+  const handleEditClick = (magnet) => {
+    setEditingId(magnet._id);
+    setName(magnet.name);
+    setPrice(magnet.price);
+    setDescription(magnet.description || "");
+    setFile(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setName("");
+    setPrice("");
+    setDescription("");
+    setFile(null);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const data = new FormData();
+    data.append('name', name);
+    data.append('price', price);
+    data.append('description', description);
+    if (file) {
+      data.append('image', file);
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const config = { headers: { 'Content-Type': 'multipart/form-data', 'x-auth-token': token } };
+
+      if (editingId) {
+        // VÁLTOZÁS: API_URL
+        await axios.put(`${API_URL}/magnets/${editingId}`, data, config);
+        toast.success("Termék frissítve! ✅");
+      } else {
+        // VÁLTOZÁS: API_URL
+        await axios.post(`${API_URL}/magnets`, data, config);
+        toast.success("Sikeres feltöltés! 🎉");
+      }
+      handleCancelEdit();
+      fetchData();
+    } catch (err) {
+      toast.error("Hiba: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleDeleteMagnet = (id) => {
+    if(!window.confirm("Biztosan törölni akarod ezt a terméket?")) return;
+    const token = localStorage.getItem('token');
+    // VÁLTOZÁS: API_URL
+    axios.delete(`${API_URL}/magnets/${id}`, { headers: { 'x-auth-token': token } })
+      .then(() => {
+        toast.info("Termék törölve 🗑️");
+        fetchData();
+      })
+      .catch((err) => toast.error("Hiba a törlésnél"));
+  };
+
+  return (
+    <div className="container">
+      <h1>⚙️ Admin Vezérlőpult</h1>
+      {/* ... (A JSX rész változatlan, azt nem másoltam ide a helytakarékosság miatt, de az marad) ... */}
+      {/* CSAK A RETURN RÉSZ ALATTI TARTALOM UGYANAZ MARAD, DE HA KELL, BEMÁSOLOM AZT IS! */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '40px' }}>
+        
+        {/* --- BAL OSZLOP: TERMÉK KEZELÉS --- */}
+        <div>
+          <h2>📦 Termék Kezelés</h2>
+          
+          <div className="admin-card">
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: '20px'}}>
+              <h3 style={{margin:0}}>{editingId ? "✏️ Szerkesztés" : "➕ Új Mágnes"}</h3>
+              {editingId && <button onClick={handleCancelEdit} style={{background:'none', border:'none', cursor:'pointer', color:'#64748b', textDecoration:'underline'}}>Mégse</button>}
+            </div>
+            
+            <form onSubmit={handleSubmit} className="admin-form-container">
+              <div>
+                <label className="admin-label">Termék neve</label>
+                <input type="text" placeholder="Pl: Balatoni naplemente" required value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              
+              <div>
+                <label className="admin-label">Ár (Ft)</label>
+                <input type="number" placeholder="Pl: 1500" required value={price} onChange={(e) => setPrice(e.target.value)} />
+              </div>
+              
+              <div>
+                <label className="admin-label">Leírás</label>
+                <textarea placeholder="Rövid leírás a termékről..." rows="3" value={description} onChange={(e) => setDescription(e.target.value)} />
+              </div>
+              
+              <div>
+                <label className="admin-label">
+                  {editingId ? "Új kép (opcionális):" : "Kép feltöltése:"}
+                </label>
+                <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} style={{background:'white'}} />
+              </div>
+
+              <button type="submit" className={editingId ? "update-btn" : "submit-btn"} style={{marginTop:'10px'}}>
+                {editingId ? "Mentés" : "Feltöltés"}
+              </button>
+            </form>
+          </div>
+
+          <div className="list">
+            {magnets.map(magnet => (
+              <div key={magnet._id} className="admin-list-item">
+                <img 
+                  src={magnet.imageUrl && magnet.imageUrl.length > 0 ? magnet.imageUrl : placeholderImg} 
+                  alt="" 
+                  className="admin-img"
+                  onError={(e) => { e.target.src = placeholderImg; }}
+                />
+                <div style={{flex: 1, marginLeft: '15px'}}>
+                  <strong style={{fontSize:'1.1rem', color:'#1e293b'}}>{magnet.name}</strong>
+                  <div style={{color:'#64748b'}}>{magnet.price} Ft</div>
+                </div>
+                
+                <div style={{display:'flex', gap:'5px'}}>
+                  <button onClick={() => handleEditClick(magnet)} className="edit-btn">✏️</button>
+                  <button onClick={() => handleDeleteMagnet(magnet._id)} className="delete-btn">🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* --- JOBB OSZLOP: RENDELÉSEK --- */}
+        <div>
+           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'15px'}}>
+              <h2 style={{margin:0}}>🚚 Rendelések ({filteredOrders.length})</h2>
+              
+              <label style={{fontSize:'0.9rem', cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', color:'#64748b'}}>
+                <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+                Archívum mutatása
+              </label>
+           </div>
+
+           {filteredOrders.length === 0 ? <p style={{color:'#64748b'}}>Nincs aktív teendő.</p> : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {filteredOrders.map(order => (
+                <div key={order._id} className="order-card" style={{borderLeftColor: getStatusColor(order.status || 'Feldolgozás alatt')}}>
+                  
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px'}}>
+                    <div>
+                      <strong style={{fontSize:'1.1rem', display:'block', color:'#0f172a'}}>
+                        {order.customerDetails?.name || order.user?.username || "Vendég"}
+                      </strong>
+                      <small style={{color:'#64748b'}}>{new Date(order.createdAt).toLocaleString()}</small>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <span style={{fontWeight:'bold', fontSize:'1.2rem', color: getStatusColor(order.status)}}>{order.totalAmount} Ft</span>
+                      <br/>
+                      <button onClick={() => handleDeleteOrder(order._id)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', marginTop:'5px'}} title="Végleges törlés">❌</button>
+                    </div>
+                  </div>
+
+                  <div style={{marginBottom:'10px', fontSize:'0.9rem', color:'#334155'}}>
+                     <div>📧 {order.customerDetails?.email}</div>
+                     <div>📞 {order.customerDetails?.phone}</div>
+                  </div>
+
+                  <div style={{marginBottom:'15px'}}>
+                    <select 
+                      value={order.status || 'Feldolgozás alatt'} 
+                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                      className="status-select"
+                      style={{
+                        borderLeft: `5px solid ${getStatusColor(order.status)}`,
+                        width: '100%',
+                        background: '#f8fafc'
+                      }}
+                    >
+                      <option value="Feldolgozás alatt">🟠 Feldolgozás alatt</option>
+                      <option value="Csomagolás">🔵 Csomagolás</option>
+                      <option value="Szállítás alatt">🟣 Szállítás alatt</option>
+                      <option value="Teljesítve">🟢 Teljesítve (Archivál)</option>
+                      <option value="Törölve">🔴 Törölve (Archivál)</option>
+                    </select>
+                  </div>
+                  
+                  <div style={{fontSize:'0.95rem', color:'#475569', marginBottom:'15px'}}>
+                    📍 <strong>Cím:</strong> {order.shippingAddress}
+                    {order.note && (
+                      <div style={{marginTop:'5px', fontStyle:'italic', background:'#fffbe6', padding:'5px', borderRadius:'4px'}}>
+                        " {order.note} "
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div style={{background:'#f8fafc', padding:'10px', borderRadius:'8px'}}>
+                    <ul style={{margin:0, paddingLeft:'20px', fontSize:'0.9rem', color:'#334155'}}>
+                      {order.products.map((p, i) => (
+                        <li key={i}>{p.name} <span style={{color:'#94a3b8'}}>x{p.quantity}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
+            </div>
+           )}
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default AdminPanel;
