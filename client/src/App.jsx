@@ -21,6 +21,7 @@ import './App.css';
 
 function App() {
   const [magnets, setMagnets] = useState([]);
+  const [customImage, setCustomImage] = useState(null);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -92,23 +93,34 @@ function App() {
   const handleContactChange = (e) => setContactData({ ...contactData, [e.target.name]: e.target.value });
 
   const placeOrder = async () => {
-    if (!termsAccepted) return toast.error("Fogadd el az ÁSZF-et!");
+    const formData = new FormData();
+    
+    const orderData = {
+      products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
+      totalAmount: productsTotal + shippingCost,
+      shippingCost,
+      shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}`,
+      customerDetails: contactData,
+      note: orderNote
+    };
+
+    // Hozzáadjuk a fájlt és az adatokat a FormData-hoz
+    formData.append('orderData', JSON.stringify(orderData));
+    if (customImage) {
+      formData.append('customImage', customImage);
+    }
+
     try {
       const token = localStorage.getItem('token');
-      const productsTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-      
-      const orderData = {
-        products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
-        totalAmount: productsTotal + shippingCost,
-        shippingCost: shippingCost,
-        shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}`,
-        customerDetails: contactData,
-        note: orderNote
-      };
-
-      await axios.post(`${API_URL}/orders`, orderData, { headers: { 'x-auth-token': token } });
+      await axios.post(`${API_URL}/orders`, formData, {
+        headers: { 
+          'x-auth-token': token,
+          'Content-Type': 'multipart/form-data' // Fontos a fájlküldéshez!
+        }
+      });
       toast.success("Rendelés elküldve! 🚀");
       setCart([]);
+      setCustomImage(null);
       setIsCheckoutOpen(false);
     } catch (err) {
       toast.error("Hiba a rendelésnél!");
@@ -310,9 +322,26 @@ function App() {
                   </div>
                 </div>
 
+                <div className="checkout-section" style={{background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1'}}>
+                  <h3>🖼️ Egyedi képek feltöltése</h3>
+                  <p style={{fontSize: '0.85rem', color: '#64748b', marginBottom: '10px'}}>Ha egyedi képet szeretnél a mágnesre, itt töltheted fel (akár többet is).</p>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    multiple 
+                    onChange={(e) => setCustomImages(e.target.files)} 
+                    style={{width: '100%', padding: '5px'}}
+                  />
+                  {customImages && customImages.length > 0 && (
+                    <div style={{marginTop: '10px', color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem'}}>
+                      ✅ {customImages.length} db kép kiválasztva
+                    </div>
+                  )}
+                </div>
+                
                 <div className="checkout-section">
                    <h3>📝 Megjegyzés (opcionális)</h3>
-                   <textarea rows="2" placeholder="Pl. A futár hívjon érkezés előtt..." value={orderNote} onChange={(e) => setOrderNote(e.target.value)} className="note-input"></textarea>
+                   <textarea rows="2" placeholder="Megjegyzés a rendeléshez..." value={orderNote} onChange={(e) => setOrderNote(e.target.value)} className="note-input"></textarea>
                 </div>
 
                 <div className="order-summary-box">
@@ -337,16 +366,9 @@ function App() {
                 <div className="legal-section">
                   <label className="checkbox-label">
                     <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} />
-                    <span>
-                      {/* ÚJ: Linkek a rendelés oldalon is */}
-                      Elfogadom az <Link to="/terms" target="_blank">Általános Szerződési Feltételeket</Link> és az <Link to="/privacy" target="_blank">Adatkezelési Tájékoztatót</Link>.
-                    </span>
+                    <span>Elfogadom az <Link to="/terms" target="_blank">ÁSZF</Link>-et és az <Link to="/privacy" target="_blank">Adatvédelmit</Link>.</span>
                   </label>
-                  <div className="legal-text">
-                    A "Rendelés leadása" gomb megnyomásával Ön tudomásul veszi, hogy a rendelés <strong>fizetési kötelezettséggel jár</strong>.
-                  </div>
                 </div>
-
               </div>
 
               <div className="checkout-footer">

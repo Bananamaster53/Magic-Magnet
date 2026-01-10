@@ -1,4 +1,3 @@
-// server/server.js
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -9,8 +8,9 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
-// Modellek importálása (Fontos, hogy itt legyen!)
+// Modellek importálása
 const Magnet = require('./models/Magnet'); 
+const Order = require('./models/Order'); // Beimportálva a rendeléshez
 
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
@@ -47,44 +47,60 @@ const upload = multer({ storage: storage });
 
 // --- ÚTVONALAK ---
 
-// 1. Mágnes feltöltés (Cloudinary-val) - Ezt ide tesszük, hogy biztosan ezt használja!
+// 1. MÁGNES FELTÖLTÉS (Admin oldalról, egyetlen kép)
 app.post('/api/magnets', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
-    
-    if (!req.file) {
-      return res.status(400).json({ message: "Kép feltöltése kötelező!" });
-    }
+    if (!req.file) return res.status(400).json({ message: "Kép feltöltése kötelező!" });
 
     const newMagnet = new Magnet({
       name,
       price,
       description,
-      imageUrl: req.file.path // Ez lesz a Cloudinary URL-je (https://...)
+      imageUrl: req.file.path 
     });
 
     await newMagnet.save();
-    console.log("Sikeres feltöltés a felhőbe:", req.file.path);
     res.status(201).json(newMagnet);
   } catch (err) {
-    console.error("Feltöltési hiba:", err);
+    console.error("Mágnes feltöltési hiba:", err);
     res.status(500).json({ message: err.message });
   }
 });
 
-// A többi mágnes útvonalat (GET, DELETE) még mindig a routes-ból hívjuk
+// 2. RENDELÉS LEADÁS (Vásárló oldali, TÖBB egyedi kép)
+app.post('/api/orders', upload.array('customImages', 10), async (req, res) => {
+  try {
+    // A frontend FormData-ban küldi az 'orderData' JSON-t stringként
+    const orderInfo = JSON.parse(req.body.orderData);
+    
+    // Kinyerjük az összes feltöltött kép elérési útját
+    const uploadedImages = req.files ? req.files.map(file => file.path) : [];
+
+    const newOrder = new Order({
+      ...orderInfo,
+      customImages: uploadedImages // A modellben ez [String] típusú kell legyen!
+    });
+
+    await newOrder.save();
+    console.log("Sikeres rendelés mentve", uploadedImages.length, "képpel.");
+    res.status(201).json(newOrder);
+  } catch (err) {
+    console.error("Rendelés mentési hiba:", err);
+    res.status(500).json({ message: "Hiba a rendelés feldolgozásakor." });
+  }
+});
+
+// Alapértelmezett útvonalak a többi funkciónak (GET, DELETE, AUTH)
 app.use('/api/magnets', require('./routes/magnetRoutes')); 
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 
-// Socket.io beállítása
+// Socket.io (Chat) beállítása
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "*", // Élesben ide írhatod majd a Netlify címedet
-    methods: ["GET", "POST"]
-  },
-  transports: ["websocket", "polling"] // Mindkét módot engedélyezzük
+  cors: { origin: "*", methods: ["GET", "POST"] },
+  transports: ["websocket", "polling"]
 });
 
 io.on("connection", (socket) => {
@@ -92,16 +108,14 @@ io.on("connection", (socket) => {
   socket.on("send_message", (data) => {
     io.emit("receive_message", data);
   });
-  socket.on("disconnect", () => {
-    console.log("User kilépett", socket.id);
-  });
+  socket.on("disconnect", () => console.log("User kilépett", socket.id));
 });
 
-// Adatbázis
+// Adatbázis csatlakozás
 const db = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/webshop';
 mongoose.connect(db)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error("DB Hiba:", err));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error("❌ DB Hiba:", err));
 
 server.listen(PORT, () => {
   console.log(`🚀 Szerver fut a ${PORT} porton`);
