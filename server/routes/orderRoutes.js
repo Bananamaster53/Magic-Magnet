@@ -4,37 +4,12 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Order = require('../models/Order');
 
-// 1. ÚJ RENDELÉS (POST)
-router.post('/', auth, async (req, res) => {
-  try {
-    const { products, totalAmount, shippingAddress, customerDetails, shippingCost, note } = req.body;
+// --- TÖRÖLD KI A POST ÚTVONALAT INNEN, MERT A SERVER.JS-BEN VAN! ---
 
-    if (!customerDetails || !customerDetails.name || !customerDetails.email) {
-      return res.status(400).json({ message: "Hiányzó adatok!" });
-    }
-
-    const newOrder = new Order({
-      user: req.user.id,
-      products,
-      totalAmount,
-      shippingAddress,
-      customerDetails,
-      shippingCost,
-      note,
-      status: 'Feldolgozás alatt'
-    });
-
-    const savedOrder = await newOrder.save();
-    res.json(savedOrder);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// 2. SAJÁT RENDELÉSEK (GET /mine) --- EZ HIÁNYZOTT! ---
+// 1. SAJÁT RENDELÉSEK (GET /mine)
+// Fontos, hogy ez legyen elől!
 router.get('/mine', auth, async (req, res) => {
   try {
-    // Csak azokat a rendeléseket keressük, amik a belépett userhez tartoznak
     const orders = await Order.find({ user: req.user.id }).sort({ createdAt: -1 });
     res.json(orders);
   } catch (err) {
@@ -42,7 +17,7 @@ router.get('/mine', auth, async (req, res) => {
   }
 });
 
-// 3. ÖSSZES RENDELÉS (ADMIN) (GET /all)
+// 2. ÖSSZES RENDELÉS (ADMIN) (GET /all)
 router.get('/all', auth, async (req, res) => {
   try {
     const orders = await Order.find()
@@ -54,7 +29,7 @@ router.get('/all', auth, async (req, res) => {
   }
 });
 
-// 4. STÁTUSZ FRISSÍTÉS (PUT)
+// 3. STÁTUSZ FRISSÍTÉS (PUT)
 router.put('/:id/status', auth, async (req, res) => {
   try {
     const updatedOrder = await Order.findByIdAndUpdate(
@@ -69,7 +44,7 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
-// 5. TÖRLÉS (DELETE)
+// 4. TÖRLÉS (DELETE)
 router.delete('/:id', auth, async (req, res) => {
   try {
     await Order.findByIdAndDelete(req.params.id);
