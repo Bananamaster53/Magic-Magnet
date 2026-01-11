@@ -45,16 +45,9 @@ router.post('/register', async (req, res) => {
     // Küldés hibaellenőrzéssel (nem állítja meg a regisztrációt, ha az e-mail elakad)
     console.log("🚀 Kísérlet az e-mail küldésére a Brevón keresztül...");
 
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.error("❌ Regisztrációs e-mail hiba a szerveren:", err); // Itt fogod látni, ha mégis timeout lenne
-      } else {
-        console.log("✅ E-mail sikeresen átadva a Brevónak!");
-        console.log("Message ID:", info.messageId); // A Brevo azonosítója
-        console.log("Válasz:", info.response);     // "250 OK" üzenet
-      }
-    });
+    transporter.sendMail(mailOptions); 
 
+    // Válasz a frontendnek (a küldéstől függetlenül, hogy ne akadjon el a regisztráció)
     res.status(201).json({ message: "Sikeres regisztráció!" });
 
   } catch (err) {
