@@ -7,7 +7,6 @@ const { Server } = require('socket.io');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
-const isTransfer = orderInfo.paymentMethod === 'bank_transfer';
 
 // --- NODEMAILER IMPORT (Külső fájlból) ---
 const transporter = require('./utils/mailer'); 
