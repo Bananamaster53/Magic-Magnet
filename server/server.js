@@ -77,6 +77,9 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
     const orderInfo = JSON.parse(req.body.orderData);
     const uploadedImages = req.files ? req.files.map(file => file.path) : [];
 
+    // --- HIÁNYZÓ VÁLTOZÓ DEFINIÁLÁSA ---
+    const isTransfer = orderInfo.paymentMethod === 'bank_transfer';
+
     const newOrder = new Order({
       ...orderInfo,
       user: req.user.id,
@@ -100,7 +103,8 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
           <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0;">
             <strong>Név:</strong> Magyari Máté <br />
             <strong>Számlaszám:</strong> 11700000-00000000-00000000 <br />
-            <strong>Összeg:</strong> ${orderInfo.totalAmount} Ft
+            <strong>Összeg:</strong> ${orderInfo.totalAmount} Ft <br />
+            <strong>Közlemény:</strong> #${savedOrder._id.toString().slice(-6)}
           </div>
         ` : `
           <p>A rendelésedet rögzítettük. A végösszeget (<strong>${orderInfo.totalAmount} Ft</strong>) a futárnál tudod majd rendezni készpénzzel vagy kártyával.</p>
