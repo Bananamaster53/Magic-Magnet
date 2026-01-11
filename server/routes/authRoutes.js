@@ -3,8 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-// IMPORTÁLJUK A MAILER-T
-const transporter = require('../utils/mailer'); 
+const transporter = require('../utils/mailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'szupertitkosmágneskulcs123'; 
 
