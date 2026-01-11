@@ -4,7 +4,6 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Order = require('../models/Order');
 const transporter = require('../utils/mailer');
-const Order = require('../models/Order');
 
 // --- TÖRÖLD KI A POST ÚTVONALAT INNEN, MERT A SERVER.JS-BEN VAN! ---
 
