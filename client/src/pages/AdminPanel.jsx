@@ -45,7 +45,7 @@ const AdminPanel = () => {
         { status: newStatus },
         { headers: { 'x-auth-token': token } }
       );
-      toast.success(`Állapot frissítve: ${newStatus} ✅`);
+      toast.success(`Állapot frissítve: ${newStatus} ✅ (E-mail elküldve)`);
       fetchData(); 
     } catch (err) {
       toast.error("Hiba az állapot frissítésénél");
@@ -217,6 +217,21 @@ const AdminPanel = () => {
                         {order.customerDetails?.name || "Vendég"}
                       </strong>
                       <small style={{color:'#64748b'}}>{new Date(order.createdAt).toLocaleString()}</small>
+                      
+                      {/* --- ÚJ: FIZETÉSI MÓD --- */}
+                      <div style={{ 
+                        marginTop: '8px', 
+                        fontSize: '0.8rem', 
+                        fontWeight: 'bold',
+                        display: 'inline-block',
+                        padding: '3px 10px',
+                        borderRadius: '20px',
+                        background: order.paymentMethod === 'bank_transfer' ? '#dcfce7' : '#fee2e2',
+                        color: order.paymentMethod === 'bank_transfer' ? '#166534' : '#991b1b',
+                        border: `1px solid ${order.paymentMethod === 'bank_transfer' ? '#bbf7d0' : '#fecaca'}`
+                      }}>
+                        {order.paymentMethod === 'bank_transfer' ? '🏦 Banki átutalás' : '🚚 Utánvét'}
+                      </div>
                     </div>
                     <div style={{textAlign:'right'}}>
                       <span style={{fontWeight:'bold', fontSize:'1.2rem', color: getStatusColor(order.status)}}>{order.totalAmount} Ft</span>
@@ -225,19 +240,23 @@ const AdminPanel = () => {
                     </div>
                   </div>
 
-                  {/* --- ÚJ: EGYEDI KÉPEK MEGJELENÍTÉSE --- */}
+                  {/* --- EGYEDI KÉPEK MEGJELENÍTÉSE LETÖLTÉSSEL --- */}
                   {order.customImages && order.customImages.length > 0 && (
                     <div style={{ background: '#f1f5f9', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>🖼️ Ügyfél fotói (Kattints a nagyításhoz):</span>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>🖼️ Ügyfél fotói:</span>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                         {order.customImages.map((imgUrl, idx) => (
-                          <a key={idx} href={imgUrl} target="_blank" rel="noreferrer">
-                            <img 
-                              src={imgUrl} 
-                              alt="Egyedi mágnes" 
-                              style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '6px', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} 
-                            />
-                          </a>
+                          <div key={idx} style={{ textAlign: 'center' }}>
+                            <a href={imgUrl} target="_blank" rel="noreferrer">
+                              <img 
+                                src={imgUrl} 
+                                alt="Egyedi mágnes" 
+                                style={{ width: '75px', height: '75px', objectFit: 'cover', borderRadius: '6px', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }} 
+                              />
+                            </a>
+                            <br />
+                            <a href={imgUrl} download style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}>Letöltés</a>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -253,7 +272,7 @@ const AdminPanel = () => {
                       value={order.status || 'Feldolgozás alatt'} 
                       onChange={(e) => handleStatusChange(order._id, e.target.value)}
                       className="status-select"
-                      style={{ width: '100%', padding: '8px', borderRadius: '5px', background: '#f8fafc', border: `1px solid ${getStatusColor(order.status)}` }}
+                      style={{ width: '100%', padding: '8px', borderRadius: '5px', background: '#f8fafc', border: `1px solid ${getStatusColor(order.status)}`, cursor: 'pointer' }}
                     >
                       <option value="Feldolgozás alatt">🟠 Feldolgozás alatt</option>
                       <option value="Csomagolás">🔵 Csomagolás</option>

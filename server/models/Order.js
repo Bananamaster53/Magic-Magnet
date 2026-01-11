@@ -25,6 +25,12 @@ const OrderSchema = new mongoose.Schema({
   
   shippingAddress: { type: String, required: true },
   note: { type: String }, // Megjegyzés
+
+  paymentMethod: { 
+    type: String, 
+    required: true,
+    enum: ['bank_transfer', 'cash_on_delivery'] 
+  },
   
   totalAmount: Number,
   shippingCost: Number,

@@ -1,27 +1,24 @@
-// server/routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const bcrypt = require('bcryptjs');      // Titkosító
-const jwt = require('jsonwebtoken');     // Token gyártó
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+// IMPORTÁLJUK A MAILER-T
+const transporter = require('../utils/mailer'); 
 
-// JWT Titkos kulcs (Élesben ezt .env fájlba rejtjük, de most jó így)
-const JWT_SECRET = 'szupertitkosmágneskulcs123'; 
+const JWT_SECRET = process.env.JWT_SECRET || 'szupertitkosmágneskulcs123'; 
 
-// --- 1. REGISZTRÁCIÓ (POST /api/auth/register) ---
+// --- 1. REGISZTRÁCIÓ ---
 router.post('/register', async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    // Megnézzük, létezik-e már az email
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: "Ez az email már foglalt!" });
 
-    // Jelszó titkosítása (ne olvasható szöveg legyen az adatbázisban)
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Új felhasználó létrehozása
     const newUser = new User({
       username,
       email,
@@ -29,6 +26,29 @@ router.post('/register', async (req, res) => {
     });
 
     await newUser.save();
+
+    // E-MAIL KÜLDÉSE (A mentés után!)
+    const mailOptions = {
+      from: `"Magic Magnet Hungary" <${process.env.EMAIL_USER}>`,
+      to: newUser.email,
+      subject: 'Üdvözöljük a Magic Magnet Hungary-nél!',
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #eee;">
+          <h2 style="color: #2563eb;">Kedves ${newUser.username}!</h2>
+          <p>Sikeresen regisztráltál a <strong>Magic Magnet Hungary</strong> webshopba.</p>
+          <p>Mostantól leadhatod egyedi hűtőmágnes rendeléseidet és nyomon követheted őket a profilodban.</p>
+          <br />
+          <p>Üdvözlettel,<br>A Magic Magnet csapata</p>
+        </div>
+      `
+    };
+
+    // Küldés hibaellenőrzéssel (nem állítja meg a regisztrációt, ha az e-mail elakad)
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) console.error("Regisztrációs e-mail hiba:", err);
+      else console.log("Regisztrációs e-mail elküldve:", info.response);
+    });
+
     res.status(201).json({ message: "Sikeres regisztráció!" });
 
   } catch (err) {
@@ -36,24 +56,20 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// --- 2. BELÉPÉS (POST /api/auth/login) ---
+// --- 2. BELÉPÉS ---
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // 1. Keresés email alapján
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Hibás email vagy jelszó!" });
 
-    // 2. Jelszó összehasonlítása (a titkosított verzióval)
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Hibás email vagy jelszó!" });
 
-    // 3. Token generálása (Ez a 'belépőkártya')
     const token = jwt.sign(
-      { id: user._id, isAdmin: user.isAdmin }, // Mit rejtünk a kártyába?
+      { id: user._id, isAdmin: user.isAdmin },
       JWT_SECRET,
-      { expiresIn: '1h' } // 1 óráig érvényes
+      { expiresIn: '1h' }
     );
 
     res.json({ 

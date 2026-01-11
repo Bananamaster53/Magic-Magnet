@@ -27,11 +27,12 @@ function App() {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true); // ÚJ: Betöltési állapot
+  const [orderNote, setOrderNote] = useState('');
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [shippingData, setShippingData] = useState({ zip: '', city: '', street: '', details: '' });
   const [contactData, setContactData] = useState({ name: '', email: '', phone: '' });
-  const [orderNote, setOrderNote] = useState('');
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
   const shippingCost = 990;
   const placeholderImg = "https://placehold.co/100?text=...";
@@ -101,14 +102,14 @@ function App() {
 
     const formData = new FormData();
     
-    // Itt állítjuk össze az adatokat közvetlenül a küldés előtt
     const orderData = {
       products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
       totalAmount: finalTotal,
       shippingCost,
       shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}${shippingData.details ? ', ' + shippingData.details : ''}`,
       customerDetails: contactData,
-      note: orderNote
+      note: orderNote,
+      paymentMethod: paymentMethod // ÚJ: Fizetési mód hozzáadása a küldött adathoz
     };
 
     formData.append('orderData', JSON.stringify(orderData));
@@ -331,6 +332,37 @@ function App() {
                     <label>Emelet, ajtó, egyéb (opcionális)</label>
                     <input type="text" name="details" value={shippingData.details} onChange={handleAddressChange} placeholder="3. emelet, 12-es kapucsengő" />
                   </div>
+                </div>
+
+                <div className="checkout-section">
+                  <h3>💳 Fizetési mód</h3>
+                  <div className="payment-selector" style={{ display: 'flex', gap: '20px', padding: '10px 0' }}>
+                    <label className="radio-label" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="radio" 
+                        name="payment" 
+                        value="bank_transfer" 
+                        checked={paymentMethod === 'bank_transfer'} 
+                        onChange={(e) => setPaymentMethod(e.target.value)} 
+                      />
+                      <span>Banki átutalás</span>
+                    </label>
+                    <label className="radio-label" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input 
+                        type="radio" 
+                        name="payment" 
+                        value="cash_on_delivery" 
+                        checked={paymentMethod === 'cash_on_delivery'} 
+                        onChange={(e) => setPaymentMethod(e.target.value)} 
+                      />
+                      <span>Utánvét (futárnál)</span>
+                    </label>
+                  </div>
+                  <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {paymentMethod === 'bank_transfer' 
+                      ? "Az utaláshoz szükséges adatokat e-mailben küldjük el a rendelés után." 
+                      : "A rendelés összegét a futárnál tudja kiegyenlíteni készpénzzel vagy kártyával."}
+                  </p>
                 </div>
 
                 <div className="checkout-section" style={{background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1'}}>
