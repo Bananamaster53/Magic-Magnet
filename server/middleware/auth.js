@@ -1,9 +1,8 @@
 // server/middleware/auth.js
 const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'szupertitkosmágneskulcs123'; // Ugyanaz, mint az authRoutes-ban!
 
 module.exports = function(req, res, next) {
-  // 1. Token kiolvasása a fejlécből (header)
+  // 1. Token kiolvasása a fejlécből
   const token = req.header('x-auth-token');
 
   // 2. Ha nincs token, elutasítjuk
@@ -11,12 +10,15 @@ module.exports = function(req, res, next) {
     return res.status(401).json({ message: 'Nincs token, hozzáférés megtagadva!' });
   }
 
-  // 3. Token ellenőrzése
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded; // Elmentjük a felhasználó adatait a kérésbe
-    next(); // Továbbengedjük a kérést
+    // 3. Token ellenőrzése a környezeti változóval (vagy fallback a titkos kulcsra)
+    const secret = process.env.JWT_SECRET || 'szupertitkosmágneskulcs123'; 
+    const decoded = jwt.verify(token, secret);
+    
+    req.user = decoded; 
+    next(); 
   } catch (err) {
-    res.status(401).json({ message: 'Érvénytelen token!' });
+    // Ha a token lejárt vagy módosították, 401-et küldünk vissza
+    res.status(401).json({ message: 'Érvénytelen vagy lejárt token!' });
   }
 };
