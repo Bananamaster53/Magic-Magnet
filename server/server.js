@@ -101,8 +101,8 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
           <h3>💳 Fizetési információk (Átutalás)</h3>
           <p>Kérjük, utald el az összeget az alábbi adatokkal:</p>
           <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0;">
-            <strong>Név:</strong> Magyari Máté <br />
-            <strong>Számlaszám:</strong> 11700000-00000000-00000000 <br />
+            <strong>Kedvezményezett neve:</strong> Mátés Marcell <br />
+            <strong>Számlaszám:</strong> 11773432-01615449 <br />
             <strong>Összeg:</strong> ${orderInfo.totalAmount} Ft <br />
             <strong>Közlemény:</strong> #${savedOrder._id.toString().slice(-6)}
           </div>
