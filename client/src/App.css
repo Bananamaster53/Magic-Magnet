@@ -630,3 +630,24 @@ input[type="file"] {
 .back-btn { background: white; border: 2px solid #cbd5e1; color: var(--text-gray); padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
 .confirm-order-btn { background: var(--success); color: white; border: none; padding: 12px 25px; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); }
 .confirm-order-btn:hover { filter: brightness(1.1); }
+
+.chat-bubble {
+  max-width: 70%;
+  margin: 10px;
+  padding: 10px;
+  border-radius: 15px;
+}
+
+.my-msg {
+  align-self: flex-end; /* Jobb oldal */
+  background-color: #2563eb;
+  color: white;
+  margin-left: auto;
+}
+
+.their-msg {
+  align-self: flex-start; /* Bal oldal */
+  background-color: #e2e8f0;
+  color: black;
+  margin-right: auto;
+}

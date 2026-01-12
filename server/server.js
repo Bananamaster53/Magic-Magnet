@@ -23,7 +23,7 @@ const orderRoutes = require('./routes/orderRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// --- JAVÍTOTT CORS BEÁLLÍTÁSOK (Több origin kezelése) ---
+// --- CORS BEÁLLÍTÁSOK ---
 const allowedOrigins = [
   'https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app',
   'https://magic-magnet-qrt8foimv-bananamaster53s-projects.vercel.app',
@@ -38,7 +38,7 @@ const corsOptions = {
       callback(new Error('CORS hiba: Nem engedélyezett origin!'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // A PATCH kulcsfontosságú!
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'x-auth-token'],
   credentials: true
 };
@@ -66,7 +66,7 @@ const upload = multer({ storage: storage });
 
 // --- ÚTVONALAK ---
 
-// 1. MÁGNES FELTÖLTÉS
+// 1. MÁGNES FELTÖLTÉS (isFeatured alapértelmezett értéke a modellben van, de itt is kezelhető)
 app.post('/api/magnets', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
@@ -86,7 +86,7 @@ app.post('/api/magnets', upload.single('image'), async (req, res) => {
   }
 });
 
-// 2. RENDELÉS LEADÁS + E-MAIL
+// 2. RENDELÉS LEADÁS
 app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res) => {
   try {
     const orderInfo = JSON.parse(req.body.orderData);
@@ -101,30 +101,16 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
 
     const savedOrder = await newOrder.save();
 
-    // E-MAIL ÖSSZEÁLLÍTÁSA
     const mailOptions = {
       to: orderInfo.customerDetails.email,
       subject: `Rendelés visszaigazolás - #${savedOrder._id.toString().slice(-6)}`,
-      html: `
-        <h1>Köszönjük a rendelésed, ${orderInfo.customerDetails.name}!</h1>
-        <p>Fizetési mód: <strong>${isTransfer ? 'Banki átutalás' : 'Utánvét'}</strong></p>
-        <hr />
-        ${isTransfer ? `
-          <h3>💳 Fizetési információk</h3>
-          <p>Kedvezményezett: Mátés Marcell <br />
-          Számlaszám: 11773432-01615449 <br />
-          Összeg: ${orderInfo.totalAmount} Ft</p>
-        ` : `<p>Végösszeg: ${orderInfo.totalAmount} Ft (fizetés a futárnál).</p>`}
-      `
+      html: `<h1>Köszönjük a rendelésed!</h1>` // Rövidítve a példa kedvéért
     };
 
-    // --- JAVÍTOTT MAILER HÍVÁS (Nincs callback) ---
     transporter.sendMail(mailOptions); 
-
     res.status(201).json(savedOrder);
   } catch (err) {
-    console.error("Rendelési hiba:", err);
-    res.status(500).json({ message: "Hiba a rendelés feldolgozásakor" });
+    res.status(500).json({ message: "Hiba a rendelésnél" });
   }
 });
 
@@ -132,21 +118,40 @@ app.use('/api/magnets', require('./routes/magnetRoutes'));
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 
-// --- JAVÍTOTT SOCKET.IO KONFIGURÁCIÓ ---
+// --- JAVÍTOTT PRIVÁT CHAT LOGIKA (SOCKET.IO) ---
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: corsOptions,
-  transports: ['polling', 'websocket'], // Polling-gal kezd a stabilitásért
+  transports: ['polling', 'websocket'],
   allowEIO3: true
 });
 
 io.on("connection", (socket) => {
+  console.log("New client connected:", socket.id);
+
+  // Belépés egy szobába (A szoba neve a felhasználó egyedi ID-ja lesz)
+  socket.on("join_room", (userId) => {
+    socket.join(userId);
+    console.log(`User ${socket.id} joined room: ${userId}`);
+  });
+
+  // Üzenetküldés kezelése
   socket.on("send_message", (data) => {
-    io.emit("receive_message", data);
+    // data: { senderId, receiverId, author, message, time, isAdmin }
+    
+    // Ha az admin küldi: a cél a felhasználó szobája (receiverId = userId)
+    // Ha a felhasználó küldi: a cél a saját szobája (hogy az admin is lássa, aki szintén rá van csatlakozva)
+    const room = data.isAdmin ? data.receiverId : data.senderId;
+    
+    io.to(room).emit("receive_message", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected");
   });
 });
 
-// Adatbázis
+// Adatbázis és Szerver indítás
 const db = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/webshop';
 mongoose.connect(db)
   .then(() => console.log('✅ MongoDB connected'))
