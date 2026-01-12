@@ -385,18 +385,25 @@ const AdminPanel = () => {
                     {activeChats[selectedChatUser].messages.map((msg, i) => (
                       <div key={i} style={{ 
                         display: 'flex', 
-                        justifyContent: msg.isAdmin ? 'flex-end' : 'flex-start',
-                        marginBottom: '12px'
+                        flexDirection: 'column',
+                        alignItems: msg.isAdmin ? 'flex-end' : 'flex-start',
+                        width: '100%'
                       }}>
                         <div style={{ 
                           ...adminChatStyles.bubble,
-                          backgroundColor: msg.isAdmin ? '#3b82f6' : '#f1f5f9',
-                          color: msg.isAdmin ? 'white' : '#1e293b',
+                          backgroundColor: msg.isAdmin ? '#3b82f6' : '#ffffff',
+                          color: msg.isAdmin ? '#ffffff' : '#1e293b',
                           alignSelf: msg.isAdmin ? 'flex-end' : 'flex-start',
-                          borderRadius: msg.isAdmin ? '15px 15px 0 15px' : '15px 15px 15px 0'
+                          borderRadius: msg.isAdmin ? '18px 18px 2px 18px' : '18px 18px 18px 2px',
+                          border: msg.isAdmin ? 'none' : '1px solid #e2e8f0'
                         }}>
-                          <div style={{ fontSize: '0.9rem' }}>{msg.message}</div>
-                          <div style={{ fontSize: '0.7rem', marginTop: '4px', opacity: 0.8, textAlign: 'right' }}>
+                          {msg.message}
+                          <div style={{ 
+                            fontSize: '0.7rem', 
+                            marginTop: '5px', 
+                            opacity: 0.7, 
+                            textAlign: 'right' 
+                          }}>
                             {msg.time}
                           </div>
                         </div>
@@ -437,75 +444,69 @@ const adminChatStyles = {
   mainContainer: { 
     marginTop: '40px', 
     padding: '20px', 
-    backgroundColor: 'white', 
+    backgroundColor: '#ffffff', 
     borderRadius: '16px', 
-    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-    width: '100%', // Kitölti a rendelkezésre álló helyet
-    maxWidth: '1200px', // De ne legyen túl széles óriási monitoron
-    marginInline: 'auto'
+    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+    gridColumn: '1 / -1', // EZ A KULCS: Kiterjeszti a chatet a teljes szélességre a rácsban
+    width: '100%'
   },
   chatWrapper: { 
     display: 'flex', 
-    height: '700px', // Kicsit magasabb is lehet a kényelemért
+    height: '650px', 
     border: '1px solid #e2e8f0', 
     borderRadius: '12px', 
-    overflow: 'hidden' 
+    overflow: 'hidden',
+    backgroundColor: '#fff'
   },
   userSidebar: { 
-    width: '300px', // Szélesebb oldalsáv a neveknek
+    width: '250px', // Fix szélesség a listának
+    minWidth: '200px',
     backgroundColor: '#f8fafc', 
     borderRight: '1px solid #e2e8f0', 
     display: 'flex', 
     flexDirection: 'column' 
   },
-  sidebarHeader: { padding: '15px', fontWeight: 'bold', fontSize: '0.9rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase' },
-  userItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 15px', cursor: 'pointer', transition: '0.2s', borderBottom: '1px solid #f1f5f9' },
-  userAvatar: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white', fontSize: '0.8rem' },
   messageArea: { 
-    flex: 1, 
+    flex: 1, // Ez kitölti a maradék hatalmas helyet
     display: 'flex', 
     flexDirection: 'column', 
-    backgroundColor: 'white',
-    minWidth: '0' // Fontos a belső flex tördeléshez
+    backgroundColor: '#ffffff',
+    minWidth: '0' 
   },
-  msgHeader: { padding: '15px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' },
-  statusDot: { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' },
   msgHistory: { 
     flex: 1, 
-    padding: '20px', 
+    padding: '25px', 
     overflowY: 'auto', 
     display: 'flex', 
     flexDirection: 'column',
-    gap: '15px'
+    gap: '15px',
+    backgroundColor: '#f1f5f9' // Kicsit elütő háttér a buborékoknak
   },
   bubble: { 
-    maxWidth: '85%', 
-    padding: '12px 16px', 
-    borderRadius: '12px',
+    maxWidth: '80%', 
+    padding: '12px 18px', 
+    borderRadius: '15px',
     fontSize: '0.95rem',
-    lineHeight: '1.4',
-    wordBreak: 'break-word', // Ez megakadályozza, hogy a szöveg kilógjon
-    whiteSpace: 'pre-wrap', // Megtartja a sorközöket és tördel
-    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+    lineHeight: '1.5',
+    wordBreak: 'break-word', // Megakadályozza a szöveg kilógását
+    whiteSpace: 'pre-wrap', 
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
   },
   inputContainer: { 
-    padding: '15px 20px', 
-    borderTop: '1px solid #f1f5f9', 
+    padding: '20px', 
+    borderTop: '1px solid #e2e8f0', 
     display: 'flex', 
-    gap: '10px',
-    alignItems: 'center'
+    gap: '12px',
+    backgroundColor: '#fff'
   },
   textInput: { 
     flex: 1, 
-    padding: '12px 15px', 
-    borderRadius: '25px', // Kerekítettebb, modernebb
-    border: '1px solid #e2e8f0', 
+    padding: '12px 20px', 
+    borderRadius: '25px', 
+    border: '1px solid #cbd5e1', 
     outline: 'none',
     fontSize: '1rem'
-  },
-  sendBtn: { padding: '0 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
-  noSelect: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' },
-  emptyText: { textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }
+  }
 };
 
 export default AdminPanel;
