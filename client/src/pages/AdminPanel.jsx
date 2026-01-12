@@ -392,6 +392,7 @@ const AdminPanel = () => {
                           ...adminChatStyles.bubble,
                           backgroundColor: msg.isAdmin ? '#3b82f6' : '#f1f5f9',
                           color: msg.isAdmin ? 'white' : '#1e293b',
+                          alignSelf: msg.isAdmin ? 'flex-end' : 'flex-start',
                           borderRadius: msg.isAdmin ? '15px 15px 0 15px' : '15px 15px 15px 0'
                         }}>
                           <div style={{ fontSize: '0.9rem' }}>{msg.message}</div>
@@ -442,8 +443,8 @@ const adminChatStyles = {
   messageArea: { flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white' },
   msgHeader: { padding: '15px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' },
   statusDot: { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' },
-  msgHistory: { flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundImage: 'radial-gradient(#e2e8f0 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' },
-  bubble: { maxWidth: '70%', padding: '10px 15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+  msgHistory: { flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column',gap: '10px' },
+  bubble: { maxWidth: '85%', padding: '10px 15px', borderRadius: '12px',wordBreak: 'break-word', boxShadow: '0 1px 2px rgba(0,0,0,0.1)',position: 'relative'},
   inputContainer: { padding: '15px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' },
   textInput: { flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', transition: 'border 0.2s' },
   sendBtn: { padding: '0 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
