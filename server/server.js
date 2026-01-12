@@ -132,8 +132,12 @@ app.use('/api/orders', orderRoutes);
 // Socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*", methods: ["GET", "POST"] },
-  transports: ["websocket", "polling"]
+  cors: {
+    origin: "https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app",
+    methods: ["GET", "POST", "PATCH"], // Itt is legyen ott a PATCH
+    allowedHeaders: ["x-auth-token"]
+  },
+  transports: ['polling', 'websocket'] // Először polling-gal próbálkozzon, az stabilabb
 });
 
 io.on("connection", (socket) => {
