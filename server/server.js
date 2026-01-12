@@ -32,9 +32,14 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+    // Ellenőrizzük, hogy az origin benne van-e a listában, 
+    // VAGY hogy az origin egy vercel.app-ra végződő cím-e (Regex használatával)
+    const isVercel = origin && origin.endsWith('.vercel.app');
+
+    if (!origin || allowedOrigins.indexOf(origin) !== -1 || isVercel) {
       callback(null, true);
     } else {
+      console.log("❌ Tiltott Origin próbálkozott:", origin); // Ez segít látni a logban, mi a hiba
       callback(new Error('CORS hiba: Nem engedélyezett origin!'));
     }
   },
