@@ -142,14 +142,17 @@ io.on("connection", (socket) => {
 
   // Üzenetküldés kezelése
   socket.on("send_message", (data) => {
-    // data: { senderId, receiverId, author, message, time, isAdmin }
-    
-    // Ha az admin küldi: a cél a felhasználó szobája (receiverId = userId)
-    // Ha a felhasználó küldi: a cél a saját szobája (hogy az admin is lássa, aki szintén rá van csatlakozva)
-    const room = data.isAdmin ? data.receiverId : data.senderId;
-    
-    io.to(room).emit("receive_message", data);
-  });
+  const room = data.isAdmin ? data.receiverId : data.senderId;
+  
+  // A konkrét szobába küldjük (User + Admin aki ott van)
+  io.to(room).emit("receive_message", data);
+  
+  // BIZTONSÁGI MÁSOLAT: Ha az admin nincs a szobában, 
+  // akkor is kapjon értesítést egy globális admin csatornán
+  if (!data.isAdmin) {
+    io.emit("admin_notification", data); 
+  }
+});
 
   socket.on("disconnect", () => {
     console.log("Client disconnected");

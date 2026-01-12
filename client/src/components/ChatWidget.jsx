@@ -23,23 +23,22 @@ const ChatWidget = ({ user }) => {
     return () => socket.off("receive_message");
   }, [user]);
 
-  const sendMessage = async () => {
-    if (currentMessage !== "" && user) {
-      const messageData = {
-        senderId: user.id,
-        receiverId: 'admin', // A júzer mindig az adminnak ír
-        author: user.username,
-        message: currentMessage,
-        time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes(),
-        isAdmin: false
-      };
+const sendMessage = async () => {
+  if (currentMessage !== "" && user) {
+    const messageData = {
+      senderId: user.id,
+      receiverId: 'admin', 
+      author: user.username,
+      message: currentMessage,
+      time: new Date().getHours() + ":" + new Date().getMinutes().toString().padStart(2, '0'),
+      isAdmin: false
+    };
 
-      await socket.emit("send_message", messageData);
-      // A saját üzenetünket is hozzáadjuk a listához, ha a szerver nem küldené vissza azonnal
-      setMessages((list) => [...list, messageData]);
-      setCurrentMessage(""); 
-    }
-  };
+    // CSAK EMITÁLUNK, nem frissítjük itt a state-et manuálisan!
+    socket.emit("send_message", messageData);
+    setCurrentMessage(""); 
+  }
+};
 
   return (
     <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 999 }}>

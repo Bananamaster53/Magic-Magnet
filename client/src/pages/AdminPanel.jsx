@@ -29,20 +29,21 @@ const AdminPanel = () => {
 
   // --- CHAT LOGIKA ---
   useEffect(() => {
-    // Az admin minden beérkező üzenetet figyel
-    socket.on("receive_message", (data) => {
-      const userId = data.isAdmin ? data.receiverId : data.senderId;
-      
+    // Figyeljük a globális értesítéseket is
+    socket.on("admin_notification", (data) => {
+      const userId = data.senderId;
       setActiveChats(prev => ({
         ...prev,
         [userId]: {
-          username: data.isAdmin ? (prev[userId]?.username || "Felhasználó") : data.author,
+          username: data.author,
           messages: [...(prev[userId]?.messages || []), data]
         }
       }));
     });
 
-    return () => socket.off("receive_message");
+    return () => {
+      socket.off("admin_notification");
+    };
   }, []);
 
   // Szobába lépés az adminnak is, ha kiválaszt egy júzert
