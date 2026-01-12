@@ -9,9 +9,9 @@ const ChatWidget = ({ user }) => {
   const [isOpen, setIsOpen] = useState(false); 
   const [currentMessage, setCurrentMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  const scrollRef = useRef(null); // Automatikus görgetéshez
+  const scrollRef = useRef(null);
 
-  // Vendég ID kezelése
+  // 1. VENDÉG ID KEZELÉSE - Ha nincs user, a guestId-t használjuk
   const [guestId] = useState(() => {
     let savedId = localStorage.getItem('chat_guest_id');
     if (!savedId) {
@@ -21,10 +21,11 @@ const ChatWidget = ({ user }) => {
     return savedId;
   });
 
+  // Meghatározzuk az aktuális azonosítót (User vagy Vendég)
   const chatIdentifier = user ? user.id : guestId;
   const chatUsername = user ? user.username : "Vendég_" + guestId.slice(-4);
 
-  // Automatikus görgetés az utolsó üzenethez
+  // Automatikus görgetés az aljára
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -40,15 +41,13 @@ const ChatWidget = ({ user }) => {
     };
 
     socket.on("receive_message", handleReceiveMessage);
-
     return () => socket.off("receive_message", handleReceiveMessage);
   }, [chatIdentifier]);
 
   const sendMessage = async () => {
-    // JAVÍTÁS: Nem csak 'user' esetén engedjük a küldést!
     if (currentMessage.trim() !== "") {
       const messageData = {
-        senderId: chatIdentifier,
+        senderId: chatIdentifier, // Fontos: a guestId-t küldjük, ha nincs user
         receiverId: 'admin', 
         author: chatUsername,
         message: currentMessage,
@@ -72,8 +71,9 @@ const ChatWidget = ({ user }) => {
           
           <div style={styles.body} ref={scrollRef}>
             {messages.map((msg, index) => {
-              // Ellenőrizzük, hogy az aktuális néző küldte-e (akár júzer, akár vendég)
+              // JAVÍTÁS: A chatIdentifier-t hasonlítjuk össze (ami vagy user.id, vagy guestId)
               const isMine = msg.senderId === chatIdentifier;
+              
               return (
                 <div key={index} style={isMine ? styles.myMsg : styles.theirMsg}>
                   <small style={{fontSize: '10px', color: '#64748b', marginBottom: '2px'}}>
@@ -119,12 +119,10 @@ const styles = {
   footer: { padding: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', gap: '8px', backgroundColor: 'white' },
   input: { flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' },
   sendBtn: { background: '#3b82f6', color: 'white', border: 'none', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' },
-  
   myMsg: { alignSelf: 'flex-end', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', maxWidth: '85%' },
   theirMsg: { alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', maxWidth: '85%' },
-  
-  myBubble: { background: '#3b82f6', color: 'white', padding: '10px 14px', borderRadius: '15px 15px 0 15px', wordBreak: 'break-word', fontSize: '14px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-  theirBubble: { background: '#e2e8f0', color: '#1e293b', padding: '10px 14px', borderRadius: '15px 15px 15px 0', wordBreak: 'break-word', fontSize: '14px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }
+  myBubble: { background: '#3b82f6', color: 'white', padding: '10px 14px', borderRadius: '15px 15px 0 15px', wordBreak: 'break-word', fontSize: '14px' },
+  theirBubble: { background: '#e2e8f0', color: '#1e293b', padding: '10px 14px', borderRadius: '15px 15px 15px 0', wordBreak: 'break-word', fontSize: '14px' }
 };
 
 export default ChatWidget;
