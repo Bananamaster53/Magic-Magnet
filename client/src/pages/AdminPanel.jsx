@@ -243,16 +243,92 @@ const AdminPanel = () => {
           <h2>🚚 Rendelések</h2>
           {/* ... A korábbi rendelés listázó kódod ide jön ... */}
           {filteredOrders.map(order => (
-            <div key={order._id} style={{padding: '10px', border: '1px solid #ddd', marginBottom: '10px', borderRadius: '8px'}}>
-               <strong>{order.customerDetails?.name}</strong> - {order.totalAmount} Ft
-               <select value={order.status} onChange={(e) => handleStatusChange(order._id, e.target.value)}>
-                 <option value="Feldolgozás alatt">Feldolgozás</option>
-                 <option value="Teljesítve">Teljesítve</option>
-               </select>
-            </div>
-          ))}
+                <div key={order._id} className="order-card" style={{borderLeft: `10px solid ${getStatusColor(order.status || 'Feldolgozás alatt')}`, marginBottom: '20px', padding: '15px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'}}>
+                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px'}}>
+                    <div>
+                      <strong style={{fontSize:'1.1rem', display:'block', color:'#0f172a'}}>
+                        {order.customerDetails?.name || "Vendég"}
+                      </strong>
+                      <small style={{color:'#64748b'}}>{new Date(order.createdAt).toLocaleString()}</small>
+                      {/* --- ÚJ: FIZETÉSI MÓD --- */}
+                      <div style={{
+                        marginTop: '8px',
+                        fontSize: '0.8rem',
+                        fontWeight: 'bold',
+                        display: 'inline-block',
+                        padding: '3px 10px',
+                        borderRadius: '20px',
+                        background: order.paymentMethod === 'bank_transfer' ? '#dcfce7' : '#fee2e2',
+                        color: order.paymentMethod === 'bank_transfer' ? '#166534' : '#991b1b',
+                        border: `1px solid ${order.paymentMethod === 'bank_transfer' ? '#bbf7d0' : '#fecaca'}`
+                      }}>
+                        {order.paymentMethod === 'bank_transfer' ? '🏦 Banki átutalás' : '🚚 Utánvét'}
+                      </div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <span style={{fontWeight:'bold', fontSize:'1.2rem', color: getStatusColor(order.status)}}>{order.totalAmount} Ft</span>
+                      <br/>
+                      <button onClick={() => handleDeleteOrder(order._id)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', marginTop:'5px'}} title="Végleges törlés">❌</button>
+                    </div>
+                  </div>
+                  {/* --- EGYEDI KÉPEK MEGJELENÍTÉSE LETÖLTÉSSEL --- */}
+                  {order.customImages && order.customImages.length > 0 && (
+                    <div style={{ background: '#f1f5f9', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>🖼️ Ügyfél fotói:</span>
+                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                        {order.customImages.map((imgUrl, idx) => (
+                          <div key={idx} style={{ textAlign: 'center' }}>
+                            <a href={imgUrl} target="_blank" rel="noreferrer">
+                              <img
+                                src={imgUrl}
+                                alt="Egyedi mágnes"
+                                style={{ width: '75px', height: '75px', objectFit: 'cover', borderRadius: '6px', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+                              />
+                            </a>
+                            <br />
+                            <a href={imgUrl} download style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}>Letöltés</a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div style={{marginBottom:'10px', fontSize:'0.9rem', color:'#334155'}}>
+                      <div>📧 {order.customerDetails?.email}</div>
+                      <div>📞 {order.customerDetails?.phone}</div>
+                  </div>
+                  <div style={{marginBottom:'15px'}}>
+                    <select
+                      value={order.status || 'Feldolgozás alatt'}
+                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                      className="status-select"
+                      style={{ width: '100%', padding: '8px', borderRadius: '5px', background: '#f8fafc', border: `1px solid ${getStatusColor(order.status)}`, cursor: 'pointer' }}
+                    >
+                      <option value="Feldolgozás alatt">🟠 Feldolgozás alatt</option>
+                      <option value="Csomagolás">🔵 Csomagolás</option>
+                      <option value="Szállítás alatt">🟣 Szállítás alatt</option>
+                      <option value="Teljesítve">🟢 Teljesítve (Archivál)</option>
+                      <option value="Törölve">🔴 Törölve (Archivál)</option>
+                    </select>
+                  </div>
+                  <div style={{fontSize:'0.95rem', color:'#475569', marginBottom:'15px'}}>
+                    📍 <strong>Cím:</strong> {order.shippingAddress}
+                    {order.note && (
+                      <div style={{marginTop:'5px', fontStyle:'italic', background:'#fffbe6', padding:'8px', borderRadius:'4px', borderLeft: '3px solid #facc15'}}>
+                        " {order.note} "
+                      </div>
+                    )}
+                  </div>
+                  <div style={{background:'#f8fafc', padding:'10px', borderRadius:'8px', border: '1px solid #e2e8f0'}}>
+                    <strong style={{fontSize: '0.85rem', color: '#64748b'}}>Rendelt termékek:</strong>
+                    <ul style={{margin:'5px 0 0 0', paddingLeft:'20px', fontSize:'0.9rem', color:'#334155'}}>
+                      {order.products.map((p, i) => (
+                        <li key={i}>{p.name} <span style={{color:'#94a3b8'}}>x{p.quantity}</span></li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ))}
         </div>
-
         {/* --- 3. ÚJ: ÉLŐ CHAT KEZELÉS --- */}
         <div style={{ background: '#f1f5f9', padding: '20px', borderRadius: '12px' }}>
           <h2>💬 Élő Chatek</h2>
