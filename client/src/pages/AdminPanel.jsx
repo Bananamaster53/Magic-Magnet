@@ -59,11 +59,21 @@ const AdminPanel = () => {
         receiverId: selectedChatUser,
         author: "Admin",
         message: adminMessage,
-        time: new Date().getHours() + ":" + new Date().getMinutes(),
+        time: new Date().getHours() + ":" + new Date().getMinutes().toString().padStart(2, '0'),
         isAdmin: true
       };
 
       socket.emit("send_message", messageData);
+      
+      // JAVÍTÁS: Saját üzenet hozzáadása a listához, hogy az admin is lássa
+      setActiveChats(prev => ({
+        ...prev,
+        [selectedChatUser]: {
+          ...prev[selectedChatUser],
+          messages: [...(prev[selectedChatUser]?.messages || []), messageData]
+        }
+      }));
+
       setAdminMessage("");
     }
   };
@@ -331,66 +341,88 @@ const AdminPanel = () => {
               ))}
         </div>
         {/* --- 3. ÚJ: ÉLŐ CHAT KEZELÉS --- */}
-        <div style={{ background: '#f1f5f9', padding: '20px', borderRadius: '12px' }}>
-          <h2>💬 Élő Chatek</h2>
-          <div style={{ display: 'flex', height: '500px', gap: '10px' }}>
-            
-            {/* Felhasználók listája */}
-            <div style={{ width: '100px', borderRight: '1px solid #cbd5e1', overflowY: 'auto' }}>
-              {Object.keys(activeChats).map(uid => (
-                <div 
-                  key={uid} 
-                  onClick={() => selectChat(uid)}
-                  style={{ 
-                    padding: '8px', 
-                    cursor: 'pointer', 
-                    background: selectedChatUser === uid ? '#3b82f6' : 'white',
-                    color: selectedChatUser === uid ? 'white' : 'black',
-                    borderRadius: '5px',
-                    marginBottom: '5px',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {activeChats[uid].username}
-                </div>
-              ))}
+        <div style={adminChatStyles.mainContainer}>
+          <h2 style={{ color: '#1e293b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '24px' }}>💬</span> Ügyfélszolgálati Központ
+          </h2>
+          
+          <div style={adminChatStyles.chatWrapper}>
+            {/* Bal oldali felhasználó lista */}
+            <div style={adminChatStyles.userSidebar}>
+              <div style={adminChatStyles.sidebarHeader}>Aktív beszélgetések</div>
+              {Object.keys(activeChats).length === 0 ? (
+                <p style={adminChatStyles.emptyText}>Nincs aktív csevegés</p>
+              ) : (
+                Object.keys(activeChats).map(uid => (
+                  <div 
+                    key={uid} 
+                    onClick={() => selectChat(uid)}
+                    style={{ 
+                      ...adminChatStyles.userItem,
+                      backgroundColor: selectedChatUser === uid ? '#3b82f6' : 'transparent',
+                      color: selectedChatUser === uid ? 'white' : '#475569'
+                    }}
+                  >
+                    <div style={adminChatStyles.userAvatar}>{activeChats[uid].username[0]}</div>
+                    <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {activeChats[uid].username}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
 
-            {/* Aktív beszélgetés ablaka */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Jobb oldali üzenetváltás */}
+            <div style={adminChatStyles.messageArea}>
               {selectedChatUser ? (
                 <>
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '10px', background: 'white', borderRadius: '5px' }}>
+                  <div style={adminChatStyles.msgHeader}>
+                    <strong>{activeChats[selectedChatUser].username}</strong>
+                    <span style={adminChatStyles.statusDot}></span>
+                  </div>
+                  
+                  <div style={adminChatStyles.msgHistory}>
                     {activeChats[selectedChatUser].messages.map((msg, i) => (
                       <div key={i} style={{ 
-                        textAlign: msg.isAdmin ? 'right' : 'left',
-                        margin: '5px 0'
+                        display: 'flex', 
+                        justifyContent: msg.isAdmin ? 'flex-end' : 'flex-start',
+                        marginBottom: '12px'
                       }}>
                         <div style={{ 
-                          display: 'inline-block', 
-                          padding: '6px 10px', 
-                          borderRadius: '10px',
-                          background: msg.isAdmin ? '#dcfce7' : '#e2e8f0',
-                          fontSize: '0.9rem'
+                          ...adminChatStyles.bubble,
+                          backgroundColor: msg.isAdmin ? '#3b82f6' : '#f1f5f9',
+                          color: msg.isAdmin ? 'white' : '#1e293b',
+                          borderRadius: msg.isAdmin ? '15px 15px 0 15px' : '15px 15px 15px 0'
                         }}>
-                          {msg.message}
+                          <div style={{ fontSize: '0.9rem' }}>{msg.message}</div>
+                          <div style={{ fontSize: '0.7rem', marginTop: '4px', opacity: 0.8, textAlign: 'right' }}>
+                            {msg.time}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ marginTop: '10px', display: 'flex' }}>
+
+                  <div style={adminChatStyles.inputContainer}>
                     <input 
                       type="text" 
                       value={adminMessage} 
                       onChange={(e) => setAdminMessage(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && sendAdminReply()}
-                      style={{ flex: 1, padding: '5px' }}
-                      placeholder="Válasz..."
+                      placeholder="Írjon választ..."
+                      style={adminChatStyles.textInput}
                     />
-                    <button onClick={sendAdminReply}>➡</button>
+                    <button onClick={sendAdminReply} style={adminChatStyles.sendBtn}>
+                      Küldés
+                    </button>
                   </div>
                 </>
-              ) : <p style={{fontSize: '0.8rem', color: '#64748b'}}>Válassz ki egy csevegést!</p>}
+              ) : (
+                <div style={adminChatStyles.noSelect}>
+                  <div style={{ fontSize: '40px' }}>✉️</div>
+                  <p>Válasszon ki egy ügyfelet a bal oldali listából</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -398,6 +430,25 @@ const AdminPanel = () => {
       </div>
     </div>
   );
+};
+
+const adminChatStyles = {
+  mainContainer: { marginTop: '40px', padding: '20px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' },
+  chatWrapper: { display: 'flex', height: '600px', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' },
+  userSidebar: { width: '280px', backgroundColor: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' },
+  sidebarHeader: { padding: '15px', fontWeight: 'bold', fontSize: '0.9rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase' },
+  userItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 15px', cursor: 'pointer', transition: '0.2s', borderBottom: '1px solid #f1f5f9' },
+  userAvatar: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white', fontSize: '0.8rem' },
+  messageArea: { flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white' },
+  msgHeader: { padding: '15px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' },
+  statusDot: { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' },
+  msgHistory: { flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', backgroundImage: 'radial-gradient(#e2e8f0 0.5px, transparent 0.5px)', backgroundSize: '20px 20px' },
+  bubble: { maxWidth: '70%', padding: '10px 15px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' },
+  inputContainer: { padding: '15px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' },
+  textInput: { flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', transition: 'border 0.2s' },
+  sendBtn: { padding: '0 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
+  noSelect: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' },
+  emptyText: { textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }
 };
 
 export default AdminPanel;
