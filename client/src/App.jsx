@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Products from './pages/Products';
 
 import { API_URL } from './config';
 
@@ -176,17 +177,18 @@ function App() {
         <div className="main-content">
           {/* --- ITT VANNAK A ROUTE-OK BEKÖTVE --- */}
           <Routes>
-             <Route path="/" element={<Home magnets={magnets} addToCart={addToCart} />} />
+             <Route path="/" element={<Home magnets={magnets.filter(m => m.isFeatured)} addToCart={addToCart} />} />
              <Route path="/admin" element={user && user.isAdmin ? <AdminPanel /> : <Navigate to="/login" />} />
              <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
              <Route path="/register" element={<Register />} />
              <Route path="/login" element={<Login />} />
-             
+             <Route path="/products" element={<Products magnets={magnets} addToCart={addToCart} />} />
              {/* ÚJ OLDALAK */}
              <Route path="/about" element={<About />} />
              <Route path="/shipping" element={<Shipping />} />
              <Route path="/privacy" element={<Privacy />} />
              <Route path="/terms" element={<Terms />} />
+             
           </Routes>
         </div>
 

@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const Magnet = require('../models/Magnet');
+// Feltételezve, hogy van auth middleware-ed a védelemhez
+// const auth = require('../middleware/auth'); 
 
 // 1. LEKÉRÉS (Változatlan)
 router.get('/', async (req, res) => {
@@ -13,10 +15,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// FIGYELEM: A POST (Létrehozás) részt innen TÖRÖLTÜK, 
-// mert a server.js-ben lévő verzió kezeli a Cloudinary-t!
-
-// 2. SZERKESZTÉS (PUT) - Frissítve a felhőhöz
+// 2. SZERKESZTÉS (PUT)
 router.put('/:id', async (req, res) => {
   try {
     const magnet = await Magnet.findById(req.params.id);
@@ -26,7 +25,6 @@ router.put('/:id', async (req, res) => {
     magnet.price = req.body.price || magnet.price;
     magnet.description = req.body.description || magnet.description;
 
-    // Ha jön új kép (Cloudinary-ról a server.js-en keresztül)
     if (req.file) {
       magnet.imageUrl = req.file.path; 
     }
@@ -35,6 +33,25 @@ router.put('/:id', async (req, res) => {
     res.json(updatedMagnet);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// --- ÚJ: KIEMELÉS MÓDOSÍTÁSA (PATCH) ---
+// Ezt a részt adtuk hozzá a főoldali kezeléshez
+router.patch('/:id', async (req, res) => {
+  try {
+    const magnet = await Magnet.findById(req.params.id);
+    if (!magnet) return res.status(404).json({ message: "Nincs ilyen termék" });
+
+    // Csak az isFeatured mezőt frissítjük az admin kérése alapján
+    if (req.body.isFeatured !== undefined) {
+      magnet.isFeatured = req.body.isFeatured;
+    }
+
+    const updatedMagnet = await magnet.save();
+    res.json(updatedMagnet);
+  } catch (err) {
+    res.status(500).json({ message: "Hiba a kiemelés módosításakor: " + err.message });
   }
 });
 

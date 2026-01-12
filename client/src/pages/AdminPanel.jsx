@@ -136,6 +136,21 @@ const AdminPanel = () => {
       .catch(() => toast.error("Hiba a törlésnél"));
   };
 
+  const toggleFeatured = async (id, currentStatus) => {
+  try {
+    const token = localStorage.getItem('token');
+    // Itt a backend PATCH útvonalát hívjuk meg
+    await axios.patch(`${API_URL}/magnets/${id}`, 
+      { isFeatured: !currentStatus }, 
+      { headers: { 'x-auth-token': token } }
+    );
+    toast.success(!currentStatus ? "Termék kiemelve a főoldalra! ⭐" : "Kiemelés eltávolítva.");
+    fetchData(); // Adatok frissítése
+  } catch (err) {
+    toast.error("Hiba történt a kiemelés során.");
+  }
+};
+
   return (
     <div className="container">
       <h1>⚙️ Admin Vezérlőpult</h1>
@@ -174,6 +189,7 @@ const AdminPanel = () => {
             </form>
           </div>
 
+          {/* AdminPanel.jsx - a "list" div-en belüli rész */}
           <div className="list">
             {magnets.map(magnet => (
               <div key={magnet._id} className="admin-list-item">
@@ -186,8 +202,27 @@ const AdminPanel = () => {
                 <div style={{flex: 1, marginLeft: '15px'}}>
                   <strong>{magnet.name}</strong>
                   <div style={{color:'#64748b'}}>{magnet.price} Ft</div>
+                  {/* Vizuális visszajelzés: ha kiemelt, kap egy kis cimkét */}
+                  {magnet.isFeatured && <small style={{color: '#f59e0b', fontWeight: 'bold'}}>⭐ Főoldalon</small>}
                 </div>
-                <div style={{display:'flex', gap:'5px'}}>
+                
+                <div style={{display:'flex', gap:'5px', alignItems: 'center'}}>
+                  {/* EZ AZ ÚJ GOMB A KIEMELÉSHEZ */}
+                  <button 
+                    onClick={() => toggleFeatured(magnet._id, magnet.isFeatured)} 
+                    title={magnet.isFeatured ? "Levétel a főoldalról" : "Kiemelés a főoldalra"}
+                    style={{ 
+                      background: magnet.isFeatured ? '#fef3c7' : '#f1f5f9', 
+                      border: `1px solid ${magnet.isFeatured ? '#f59e0b' : '#cbd5e1'}`,
+                      padding: '5px 8px', 
+                      borderRadius: '4px', 
+                      cursor: 'pointer',
+                      fontSize: '1.1rem'
+                    }}
+                  >
+                    {magnet.isFeatured ? "★" : "☆"}
+                  </button>
+
                   <button onClick={() => handleEditClick(magnet)} className="edit-btn">✏️</button>
                   <button onClick={() => handleDeleteMagnet(magnet._id)} className="delete-btn">🗑️</button>
                 </div>

@@ -6,7 +6,8 @@ const magnetSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   description: String,
   imageUrl: String,
-  stock: { type: Number, default: 10 }
+  stock: { type: Number, default: 10 },
+  isFeatured: { type: Boolean, default: false }
 });
 
 // FONTOS: Ez a sor szokott hiányozni vagy hibás lenni!
