@@ -8,7 +8,7 @@ const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 
-// --- NODEMAILER IMPORT (Külső fájlból) ---
+// --- NODEMAILER IMPORT ---
 const transporter = require('./utils/mailer'); 
 
 // Modellek
@@ -23,12 +23,27 @@ const orderRoutes = require('./routes/orderRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware-ek
-app.use(cors({
-  origin: 'https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app', // A frontend címed
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // A PATCH hiányzott innen!
-  allowedHeaders: ['Content-Type', 'x-auth-token']
-}));
+// --- JAVÍTOTT CORS BEÁLLÍTÁSOK (Több origin kezelése) ---
+const allowedOrigins = [
+  'https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app',
+  'https://magic-magnet-qrt8foimv-bananamaster53s-projects.vercel.app',
+  'http://localhost:5173'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS hiba: Nem engedélyezett origin!'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // A PATCH kulcsfontosságú!
+  allowedHeaders: ['Content-Type', 'x-auth-token'],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -76,8 +91,6 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
   try {
     const orderInfo = JSON.parse(req.body.orderData);
     const uploadedImages = req.files ? req.files.map(file => file.path) : [];
-
-    // --- HIÁNYZÓ VÁLTOZÓ DEFINIÁLÁSA ---
     const isTransfer = orderInfo.paymentMethod === 'bank_transfer';
 
     const newOrder = new Order({
@@ -90,33 +103,23 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
 
     // E-MAIL ÖSSZEÁLLÍTÁSA
     const mailOptions = {
-      from: `"Magic Magnet Hungary" <${process.env.EMAIL_USER}>`,
       to: orderInfo.customerDetails.email,
       subject: `Rendelés visszaigazolás - #${savedOrder._id.toString().slice(-6)}`,
       html: `
         <h1>Köszönjük a rendelésed, ${orderInfo.customerDetails.name}!</h1>
-        <p>Fizetési mód: <strong>${isTransfer ? 'Banki átutalás' : 'Utánvét (fizetés a futárnál)'}</strong></p>
+        <p>Fizetési mód: <strong>${isTransfer ? 'Banki átutalás' : 'Utánvét'}</strong></p>
         <hr />
         ${isTransfer ? `
-          <h3>💳 Fizetési információk (Átutalás)</h3>
-          <p>Kérjük, utald el az összeget az alábbi adatokkal:</p>
-          <div style="background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0;">
-            <strong>Kedvezményezett neve:</strong> Mátés Marcell <br />
-            <strong>Számlaszám:</strong> 11773432-01615449 <br />
-            <strong>Összeg:</strong> ${orderInfo.totalAmount} Ft <br />
-            <strong>Közlemény:</strong> #${savedOrder._id.toString().slice(-6)}
-          </div>
-        ` : `
-          <p>A rendelésedet rögzítettük. A végösszeget (<strong>${orderInfo.totalAmount} Ft</strong>) a futárnál tudod majd rendezni készpénzzel vagy kártyával.</p>
-        `}
+          <h3>💳 Fizetési információk</h3>
+          <p>Kedvezményezett: Mátés Marcell <br />
+          Számlaszám: 11773432-01615449 <br />
+          Összeg: ${orderInfo.totalAmount} Ft</p>
+        ` : `<p>Végösszeg: ${orderInfo.totalAmount} Ft (fizetés a futárnál).</p>`}
       `
     };
 
-    // E-mail küldése
-    transporter.sendMail(mailOptions, (err, info) => {
-        if (err) console.error("❌ E-mail hiba:", err);
-        else console.log("📧 Visszaigazoló e-mail elküldve:", info.response);
-    });
+    // --- JAVÍTOTT MAILER HÍVÁS (Nincs callback) ---
+    transporter.sendMail(mailOptions); 
 
     res.status(201).json(savedOrder);
   } catch (err) {
@@ -129,15 +132,12 @@ app.use('/api/magnets', require('./routes/magnetRoutes'));
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 
-// Socket.io
+// --- JAVÍTOTT SOCKET.IO KONFIGURÁCIÓ ---
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app",
-    methods: ["GET", "POST", "PATCH"], // Itt is legyen ott a PATCH
-    allowedHeaders: ["x-auth-token"]
-  },
-  transports: ['polling', 'websocket'] // Először polling-gal próbálkozzon, az stabilabb
+  cors: corsOptions,
+  transports: ['polling', 'websocket'], // Polling-gal kezd a stabilitásért
+  allowEIO3: true
 });
 
 io.on("connection", (socket) => {
