@@ -434,19 +434,75 @@ const AdminPanel = () => {
 };
 
 const adminChatStyles = {
-  mainContainer: { marginTop: '40px', padding: '20px', backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' },
-  chatWrapper: { display: 'flex', height: '600px', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden' },
-  userSidebar: { width: '280px', backgroundColor: '#f8fafc', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' },
+  mainContainer: { 
+    marginTop: '40px', 
+    padding: '20px', 
+    backgroundColor: 'white', 
+    borderRadius: '16px', 
+    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+    width: '100%', // Kitölti a rendelkezésre álló helyet
+    maxWidth: '1200px', // De ne legyen túl széles óriási monitoron
+    marginInline: 'auto'
+  },
+  chatWrapper: { 
+    display: 'flex', 
+    height: '700px', // Kicsit magasabb is lehet a kényelemért
+    border: '1px solid #e2e8f0', 
+    borderRadius: '12px', 
+    overflow: 'hidden' 
+  },
+  userSidebar: { 
+    width: '300px', // Szélesebb oldalsáv a neveknek
+    backgroundColor: '#f8fafc', 
+    borderRight: '1px solid #e2e8f0', 
+    display: 'flex', 
+    flexDirection: 'column' 
+  },
   sidebarHeader: { padding: '15px', fontWeight: 'bold', fontSize: '0.9rem', color: '#64748b', borderBottom: '1px solid #e2e8f0', textTransform: 'uppercase' },
   userItem: { display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 15px', cursor: 'pointer', transition: '0.2s', borderBottom: '1px solid #f1f5f9' },
   userAvatar: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white', fontSize: '0.8rem' },
-  messageArea: { flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'white' },
+  messageArea: { 
+    flex: 1, 
+    display: 'flex', 
+    flexDirection: 'column', 
+    backgroundColor: 'white',
+    minWidth: '0' // Fontos a belső flex tördeléshez
+  },
   msgHeader: { padding: '15px 20px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '10px' },
   statusDot: { width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' },
-  msgHistory: { flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column',gap: '10px' },
-  bubble: { maxWidth: '85%', padding: '10px 15px', borderRadius: '12px',wordBreak: 'break-word', boxShadow: '0 1px 2px rgba(0,0,0,0.1)',position: 'relative'},
-  inputContainer: { padding: '15px 20px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: '10px' },
-  textInput: { flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', transition: 'border 0.2s' },
+  msgHistory: { 
+    flex: 1, 
+    padding: '20px', 
+    overflowY: 'auto', 
+    display: 'flex', 
+    flexDirection: 'column',
+    gap: '15px'
+  },
+  bubble: { 
+    maxWidth: '85%', 
+    padding: '12px 16px', 
+    borderRadius: '12px',
+    fontSize: '0.95rem',
+    lineHeight: '1.4',
+    wordBreak: 'break-word', // Ez megakadályozza, hogy a szöveg kilógjon
+    whiteSpace: 'pre-wrap', // Megtartja a sorközöket és tördel
+    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+  },
+  inputContainer: { 
+    padding: '15px 20px', 
+    borderTop: '1px solid #f1f5f9', 
+    display: 'flex', 
+    gap: '10px',
+    alignItems: 'center'
+  },
+  textInput: { 
+    flex: 1, 
+    padding: '12px 15px', 
+    borderRadius: '25px', // Kerekítettebb, modernebb
+    border: '1px solid #e2e8f0', 
+    outline: 'none',
+    fontSize: '1rem'
+  },
   sendBtn: { padding: '0 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' },
   noSelect: { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' },
   emptyText: { textAlign: 'center', padding: '20px', color: '#94a3b8', fontSize: '0.9rem' }
