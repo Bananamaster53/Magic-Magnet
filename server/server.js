@@ -25,9 +25,9 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware-ek
 app.use(cors({
-  origin: "*", 
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "x-auth-token"]
+  origin: 'https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app', // A frontend címed
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // A PATCH hiányzott innen!
+  allowedHeaders: ['Content-Type', 'x-auth-token']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
