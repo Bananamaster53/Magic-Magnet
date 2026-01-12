@@ -58,13 +58,6 @@ const Home = ({ magnets, addToCart }) => {
             </p>
           )}
         </div>
-        
-        {/* ÚJ: Gomb a teljes kínálathoz a lista alatt is */}
-        <div style={{ textAlign: 'center', marginTop: '40px' }}>
-          <Link to="/products" className="secondary-btn" style={{ color: '#2563eb', fontWeight: 'bold' }}>
-            Összes termék megtekintése →
-          </Link>
-        </div>
       </div>
     </div>
   );

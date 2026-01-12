@@ -155,6 +155,10 @@ function App() {
             <Link to="/" className="logo">🧲 Magic Magnet Hungary</Link>
             <div className="nav-links">
               <Link to="/">Főoldal</Link>
+              
+              {/* ÚJ LINK: Itt érhető el az összes mágnes */}
+              <Link to="/products">Mágnesek</Link>
+
               {user ? (
                 <>
                   <Link to="/profile">Profil</Link>
@@ -167,6 +171,7 @@ function App() {
                   <Link to="/register" className="highlight-link">Regisztráció</Link>
                 </>
               )}
+              
               <button className="cart-btn" onClick={() => setIsCartOpen(true)}>
                 🛒 <span className="badge">{cart.reduce((acc, item) => acc + item.quantity, 0)}</span>
               </button>
