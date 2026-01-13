@@ -15,14 +15,14 @@ const transporter = require('./utils/mailer');
 const Magnet = require('./models/Magnet'); 
 const Order = require('./models/Order'); 
 
-// Auth import (csak ez marad külső fájlban, mert ez bonyolultabb)
+// Auth import
 const authRoutes = require('./routes/authRoutes');
 const auth = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// --- CORS BEÁLLÍTÁSOK ---
+// --- CORS ---
 const allowedOrigins = [
   'https://magic-magnet-f22iik2mu-bananamaster53s-projects.vercel.app',
   'https://magic-magnet-qrt8foimv-bananamaster53s-projects.vercel.app',
@@ -54,18 +54,15 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: { folder: 'magnes_shop', allowed_formats: ['jpg', 'png', 'jpeg'] },
 });
 const upload = multer({ storage: storage });
 
-// ================= ÚTVONALAK (MINDEN EGY HELYEN) =================
+// ================= ÚTVONALAK =================
 
-// --- 1. MÁGNES KEZELÉS ---
-
-// Lekérdezés (Publikus)
+// 1. MÁGNESEK (Publikus)
 app.get('/api/magnets', async (req, res) => {
   try {
     const magnets = await Magnet.find();
@@ -73,38 +70,28 @@ app.get('/api/magnets', async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// Feltöltés (Admin)
 app.post('/api/magnets', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
-    if (!req.file) return res.status(400).json({ message: "Kép feltöltése kötelező!" });
-
-    const newMagnet = new Magnet({
-      name, price, description, imageUrl: req.file.path 
-    });
+    if (!req.file) return res.status(400).json({ message: "Kép hiányzik" });
+    const newMagnet = new Magnet({ name, price, description, imageUrl: req.file.path });
     await newMagnet.save();
     res.status(201).json(newMagnet);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// Szerkesztés (Admin) - JAVÍTVA: Képcsere nélkül is működik!
 app.put('/api/magnets/:id', upload.single('image'), async (req, res) => {
   try {
     const { name, price, description } = req.body;
     const magnet = await Magnet.findById(req.params.id);
     if (!magnet) return res.status(404).json({ message: "Nincs ilyen termék" });
-
-    magnet.name = name;
-    magnet.price = price;
-    magnet.description = description;
-    if (req.file) magnet.imageUrl = req.file.path; // Csak ha van új kép
-
+    magnet.name = name; magnet.price = price; magnet.description = description;
+    if (req.file) magnet.imageUrl = req.file.path;
     await magnet.save();
     res.json(magnet);
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// Kiemelés (Admin)
 app.patch('/api/magnets/:id', auth, async (req, res) => {
   try {
     const magnet = await Magnet.findById(req.params.id);
@@ -114,7 +101,6 @@ app.patch('/api/magnets/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// Törlés (Admin)
 app.delete('/api/magnets/:id', auth, async (req, res) => {
   try {
     await Magnet.findByIdAndDelete(req.params.id);
@@ -123,48 +109,43 @@ app.delete('/api/magnets/:id', auth, async (req, res) => {
 });
 
 
-// --- 2. RENDELÉS KEZELÉS ---
+// 2. RENDELÉSEK
 
-// Rendelés leadása (Publikus/User)
+// --- DEBUG ROUTE: Lista lekérése ---
+app.get('/api/orders/all', auth, async (req, res) => {
+  console.log("📥 Kérés érkezett: GET /api/orders/all"); // Ezt figyeld a terminálban!
+  try {
+    const orders = await Order.find().sort({ createdAt: -1 });
+    console.log(`✅ Talált rendelések száma: ${orders.length}`);
+    res.json(orders);
+  } catch (err) { 
+    console.error("❌ Hiba a rendelések lekérésekor:", err);
+    res.status(500).json({ message: err.message }); 
+  }
+});
+
 app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res) => {
   try {
     const orderInfo = JSON.parse(req.body.orderData);
     const uploadedImages = req.files ? req.files.map(file => file.path) : [];
-    const isTransfer = orderInfo.paymentMethod === 'bank_transfer';
-
-    const newOrder = new Order({
-      ...orderInfo,
-      user: req.user.id,
-      customImages: uploadedImages
-    });
-
+    const newOrder = new Order({ ...orderInfo, user: req.user.id, customImages: uploadedImages });
     const savedOrder = await newOrder.save();
-
-    // Email küldés
-    const mailOptions = {
+    
+    // Email
+    transporter.sendMail({
       to: orderInfo.customerDetails.email,
-      from: `"Magic Magnet Hungary" <${process.env.EMAIL_USER}>`,
-      subject: `Rendelés visszaigazolás - #${savedOrder._id.toString().slice(-6)}`,
-      html: `<h1>Köszönjük a rendelésed! Azonosító: #${savedOrder._id.toString().slice(-6)}</h1>`
-    };
-    transporter.sendMail(mailOptions); 
+      from: `"Magic Magnet" <${process.env.EMAIL_USER}>`,
+      subject: `Rendelés #${savedOrder._id.toString().slice(-6)}`,
+      html: `<h1>Sikeres rendelés!</h1>`
+    });
 
     res.status(201).json(savedOrder);
   } catch (err) {
     console.error("Rendelési hiba:", err);
-    res.status(500).json({ message: "Hiba a rendeléskor" });
+    res.status(500).json({ message: "Hiba" });
   }
 });
 
-// Rendelések listázása (Admin) - EZ HIÁNYZOTT, AZÉRT TŰNTEK EL!
-app.get('/api/orders/all', auth, async (req, res) => {
-  try {
-    const orders = await Order.find().sort({ createdAt: -1 });
-    res.json(orders);
-  } catch (err) { res.status(500).json({ message: err.message }); }
-});
-
-// Státusz frissítése (Admin)
 app.put('/api/orders/:id/status', auth, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -175,19 +156,17 @@ app.put('/api/orders/:id/status', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// Rendelés törlése (Admin)
 app.delete('/api/orders/:id', auth, async (req, res) => {
   try {
     await Order.findByIdAndDelete(req.params.id);
-    res.json({ message: "Rendelés törölve" });
+    res.json({ message: "Törölve" });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// --- AUTH ROUTE ---
+// Auth Route
 app.use('/api/auth', authRoutes);
 
-
-// --- SOCKET.IO CHAT ---
+// Socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: corsOptions,
@@ -196,10 +175,7 @@ const io = new Server(server, {
 });
 
 io.on("connection", (socket) => {
-  socket.on("join_room", (roomId) => {
-    if (roomId) socket.join(roomId);
-  });
-
+  socket.on("join_room", (roomId) => { if (roomId) socket.join(roomId); });
   socket.on("send_message", (data) => {
     const room = data.isAdmin ? data.receiverId : data.senderId;
     if (room) {
@@ -209,7 +185,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// DB Csatlakozás
 const db = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/webshop';
 mongoose.connect(db)
   .then(() => console.log('✅ MongoDB connected'))
