@@ -241,7 +241,7 @@ function App() {
               <h4>Kövess minket</h4>
               <div className="social-icons">
                 <a href="https://www.facebook.com/magicmagnethungary?locale=hu_HU" target="_blank" rel="noreferrer">Facebook</a> • 
-                <a href="https://instagram.com" target="_blank" rel="noreferrer"> Instagram</a> • 
+                <a href="https://www.instagram.com/magicmagnethungary?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noreferrer"> Instagram</a> • 
                 <a href="https://www.tiktok.com/@magicmagnethungary?is_from_webapp=1&sender_device=pc" target="_blank" rel="noreferrer"> TikTok</a>
               </div>
             </div>
