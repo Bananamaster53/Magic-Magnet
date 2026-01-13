@@ -253,7 +253,7 @@ const AdminPanel = () => {
         </div>
 
         {/* CHAT KÁRTYA (Javított word-break-el) */}
-        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: '200px' }}>
           <h3 style={{ margin: '0 0 15px 0' }}>💬 Ügyfélszolgálat</h3>
           <div style={{ display: 'flex', flex: 1, border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
             <div style={{ width: '130px', borderRight: '1px solid #e2e8f0', overflowY: 'auto', backgroundColor: '#f8fafc' }}>
