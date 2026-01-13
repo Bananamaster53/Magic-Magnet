@@ -90,6 +90,44 @@ app.post('/api/magnets', upload.single('image'), async (req, res) => {
   }
 });
 
+// 2. MÁGNES SZERKESZTÉSE (PUT) - EZT ILLESD BE!
+app.put('/api/magnets/:id', upload.single('image'), async (req, res) => {
+  try {
+    const { name, price, description } = req.body;
+    
+    // Megkeressük a terméket az ID alapján
+    const magnet = await Magnet.findById(req.params.id);
+    if (!magnet) return res.status(404).json({ message: "A termék nem található" });
+
+    // Frissítjük az adatokat
+    magnet.name = name;
+    magnet.price = price;
+    magnet.description = description;
+
+    // Ha töltöttek fel ÚJ képet, akkor lecseréljük.
+    // Ha nem (req.file undefined), akkor marad a régi (magnet.imageUrl).
+    if (req.file) {
+      magnet.imageUrl = req.file.path;
+    }
+
+    await magnet.save();
+    res.json(magnet);
+  } catch (err) {
+    console.error("Szerkesztési hiba:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// 3. MÁGNES TÖRLÉSE (DELETE) - EZ IS HASZNOS, HA MÉG NINCS
+app.delete('/api/magnets/:id', async (req, res) => {
+  try {
+    await Magnet.findByIdAndDelete(req.params.id);
+    res.json({ message: "Termék törölve" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 // 2. RENDELÉS LEADÁS + E-MAIL
 app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res) => {
   try {
