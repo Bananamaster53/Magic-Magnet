@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { API_URL } from '../config';
-import { io } from "socket.io-client"; // Behozzuk a socketet az adminnak is
+import { io } from "socket.io-client";
 
-// Socket konfiguráció (ugyanaz, mint a ChatWidget-nél)
+// Socket konfiguráció az élő chathez
 const socketURL = API_URL.replace('/api', '');
 const socket = io(socketURL, { transports: ["websocket", "polling"] });
 
 const AdminPanel = () => {
+  // --- ÁLLAPOTOK (MINDEN MEGTARTVA) ---
   const [magnets, setMagnets] = useState([]);
   const [orders, setOrders] = useState([]);
   
-  // --- CHAT ÁLLAPOTOK ---
-  const [activeChats, setActiveChats] = useState({}); // { userId: { messages: [], username: "" } }
+  const [activeChats, setActiveChats] = useState({});
   const [selectedChatUser, setSelectedChatUser] = useState(null);
   const [adminMessage, setAdminMessage] = useState("");
+  const chatScrollRef = useRef(null);
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -27,9 +28,15 @@ const AdminPanel = () => {
 
   const placeholderImg = "https://placehold.co/100?text=Nincs+Kep";
 
-  // --- CHAT LOGIKA ---
+  // --- CHAT LOGIKA ÉS GÖRDÜLÉS ---
   useEffect(() => {
-    // Figyeljük a globális értesítéseket is
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [selectedChatUser, activeChats]);
+
+  useEffect(() => {
+    // Globális értesítés figyelése
     socket.on("admin_notification", (data) => {
       const userId = data.senderId;
       setActiveChats(prev => ({
@@ -46,14 +53,13 @@ const AdminPanel = () => {
     };
   }, []);
 
-  // Szobába lépés az adminnak is, ha kiválaszt egy júzert
   const selectChat = (userId) => {
     setSelectedChatUser(userId);
     socket.emit("join_room", userId);
   };
 
   const sendAdminReply = () => {
-    if (adminMessage !== "" && selectedChatUser) {
+    if (adminMessage.trim() !== "" && selectedChatUser) {
       const messageData = {
         senderId: 'admin',
         receiverId: selectedChatUser,
@@ -65,7 +71,6 @@ const AdminPanel = () => {
 
       socket.emit("send_message", messageData);
       
-      // JAVÍTÁS: Saját üzenet hozzáadása a listához, hogy az admin is lássa
       setActiveChats(prev => ({
         ...prev,
         [selectedChatUser]: {
@@ -78,7 +83,7 @@ const AdminPanel = () => {
     }
   };
 
-  // --- EREDETI FUNKCIÓK (fetchData, handleSubmit, stb.) ---
+  // --- ADATKEZELÉS (MINDEN EREDETI FUNKCIÓ) ---
   const fetchData = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -99,9 +104,6 @@ const AdminPanel = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  // ... (handleStatusChange, handleDeleteOrder, handleSubmit, stb. változatlan marad) ...
-  // [Itt tartsd meg az összes korábbi handle függvényedet!]
-
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       const token = localStorage.getItem('token');
@@ -109,7 +111,7 @@ const AdminPanel = () => {
         { status: newStatus },
         { headers: { 'x-auth-token': token } }
       );
-      toast.success(`Állapot frissítve: ${newStatus} ✅ (E-mail elküldve)`);
+      toast.success(`Állapot frissítve: ${newStatus} ✅`);
       fetchData(); 
     } catch (err) {
       toast.error("Hiba az állapot frissítésénél");
@@ -207,306 +209,155 @@ const AdminPanel = () => {
         { isFeatured: !currentStatus }, 
         { headers: { 'x-auth-token': token } }
       );
-      toast.success(!currentStatus ? "Termék kiemelve a főoldalra! ⭐" : "Kiemelés eltávolítva.");
       fetchData();
     } catch (err) {
       toast.error("Hiba történt a kiemelés során.");
     }
   };
 
+  // --- MEGJELENÍTÉS (FIX OLDALSÁVVAL) ---
   return (
-    <div className="container" style={{maxWidth: '1400px'}}>
-      <h1>⚙️ Admin Vezérlőpult</h1>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f1f5f9', gap: '25px', padding: '25px' }}>
       
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
-        
-        {/* --- 1. TERMÉK KEZELÉS --- */}
-        <div>
-          <h2>📦 Termékek</h2>
-          <div className="admin-card">
-            {/* ... Form változatlan ... */}
-            <form onSubmit={handleSubmit} className="admin-form-container">
-               <input type="text" placeholder="Név" required value={name} onChange={(e) => setName(e.target.value)} />
-               <input type="number" placeholder="Ár" required value={price} onChange={(e) => setPrice(e.target.value)} />
-               <textarea placeholder="Leírás" value={description} onChange={(e) => setDescription(e.target.value)} />
-               <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-               <button type="submit">{editingId ? "Mentés" : "Feltöltés"}</button>
-            </form>
-          </div>
-          <div className="list">
+      {/* BAL OSZLOP: FIX TERMÉK KEZELÉS ÉS CHAT */}
+      <div style={{ width: '450px', display: 'flex', flexDirection: 'column', gap: '25px', position: 'sticky', top: '25px', height: 'calc(100vh - 50px)' }}>
+        <h1 style={{ margin: 0, fontSize: '24px' }}>⚙️ Admin Vezérlő</h1>
+
+        {/* TERMÉK KEZELŐ KÁRTYA */}
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <h3 style={{ margin: 0 }}>{editingId ? "✏️ Termék Szerkesztése" : "➕ Új Termék Hozzáadása"}</h3>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input type="text" placeholder="Név" required value={name} onChange={(e) => setName(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+            <input type="number" placeholder="Ár" required value={price} onChange={(e) => setPrice(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd' }} />
+            <textarea placeholder="Leírás" value={description} onChange={(e) => setDescription(e.target.value)} style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', minHeight: '60px' }} />
+            <input type="file" onChange={(e) => setFile(e.target.files[0])} style={{ fontSize: '13px' }} />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button type="submit" style={{ flex: 1, padding: '10px', background: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                {editingId ? "Mentés" : "Feltöltés"}
+              </button>
+              {editingId && <button type="button" onClick={handleCancelEdit} style={{ padding: '10px', background: '#e2e8f0', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>Mégse</button>}
+            </div>
+          </form>
+          
+          <div style={{ marginTop: '10px', maxHeight: '200px', overflowY: 'auto', borderTop: '1px solid #eee', paddingTop: '10px' }}>
             {magnets.map(magnet => (
-              <div key={magnet._id} className="admin-list-item">
-                <img src={magnet.imageUrl || placeholderImg} alt="" className="admin-img" />
-                <div style={{flex: 1, marginLeft: '10px'}}>
-                  <strong>{magnet.name}</strong>
-                  <div>{magnet.price} Ft {magnet.isFeatured && "⭐"}</div>
-                </div>
-                <button onClick={() => toggleFeatured(magnet._id, magnet.isFeatured)}>{magnet.isFeatured ? "★" : "☆"}</button>
-                <button onClick={() => handleEditClick(magnet)}>✏️</button>
-                <button onClick={() => handleDeleteMagnet(magnet._id)}>🗑️</button>
+              <div key={magnet._id} style={{ display: 'flex', alignItems: 'center', padding: '8px', borderBottom: '1px solid #f8fafc', gap: '10px' }}>
+                <img src={magnet.imageUrl || placeholderImg} alt="" style={{ width: '35px', height: '35px', objectFit: 'cover', borderRadius: '5px' }} />
+                <div style={{ flex: 1, fontSize: '13px' }}><strong>{magnet.name}</strong></div>
+                <button onClick={() => toggleFeatured(magnet._id, magnet.isFeatured)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: magnet.isFeatured ? '#f59e0b' : '#cbd5e1', fontSize: '18px' }}>★</button>
+                <button onClick={() => handleEditClick(magnet)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>✏️</button>
+                <button onClick={() => handleDeleteMagnet(magnet._id)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>🗑️</button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* --- 2. RENDELÉSEK --- */}
-        <div>
-          <h2>🚚 Rendelések</h2>
-          {/* ... A korábbi rendelés listázó kódod ide jön ... */}
-          {filteredOrders.map(order => (
-                <div key={order._id} className="order-card" style={{borderLeft: `10px solid ${getStatusColor(order.status || 'Feldolgozás alatt')}`, marginBottom: '20px', padding: '15px', background: 'white', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)'}}>
-                  <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'10px'}}>
-                    <div>
-                      <strong style={{fontSize:'1.1rem', display:'block', color:'#0f172a'}}>
-                        {order.customerDetails?.name || "Vendég"}
-                      </strong>
-                      <small style={{color:'#64748b'}}>{new Date(order.createdAt).toLocaleString()}</small>
-                      {/* --- ÚJ: FIZETÉSI MÓD --- */}
-                      <div style={{
-                        marginTop: '8px',
-                        fontSize: '0.8rem',
-                        fontWeight: 'bold',
-                        display: 'inline-block',
-                        padding: '3px 10px',
-                        borderRadius: '20px',
-                        background: order.paymentMethod === 'bank_transfer' ? '#dcfce7' : '#fee2e2',
-                        color: order.paymentMethod === 'bank_transfer' ? '#166534' : '#991b1b',
-                        border: `1px solid ${order.paymentMethod === 'bank_transfer' ? '#bbf7d0' : '#fecaca'}`
-                      }}>
-                        {order.paymentMethod === 'bank_transfer' ? '🏦 Banki átutalás' : '🚚 Utánvét'}
-                      </div>
-                    </div>
-                    <div style={{textAlign:'right'}}>
-                      <span style={{fontWeight:'bold', fontSize:'1.2rem', color: getStatusColor(order.status)}}>{order.totalAmount} Ft</span>
-                      <br/>
-                      <button onClick={() => handleDeleteOrder(order._id)} style={{background:'none', border:'none', cursor:'pointer', fontSize:'1.2rem', marginTop:'5px'}} title="Végleges törlés">❌</button>
-                    </div>
-                  </div>
-                  {/* --- EGYEDI KÉPEK MEGJELENÍTÉSE LETÖLTÉSSEL --- */}
-                  {order.customImages && order.customImages.length > 0 && (
-                    <div style={{ background: '#f1f5f9', padding: '10px', borderRadius: '8px', marginBottom: '15px' }}>
-                      <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#475569', display: 'block', marginBottom: '8px' }}>🖼️ Ügyfél fotói:</span>
-                      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                        {order.customImages.map((imgUrl, idx) => (
-                          <div key={idx} style={{ textAlign: 'center' }}>
-                            <a href={imgUrl} target="_blank" rel="noreferrer">
-                              <img
-                                src={imgUrl}
-                                alt="Egyedi mágnes"
-                                style={{ width: '75px', height: '75px', objectFit: 'cover', borderRadius: '6px', border: '2px solid white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
-                              />
-                            </a>
-                            <br />
-                            <a href={imgUrl} download style={{ fontSize: '0.7rem', color: '#2563eb', fontWeight: 'bold', textDecoration: 'none' }}>Letöltés</a>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  <div style={{marginBottom:'10px', fontSize:'0.9rem', color:'#334155'}}>
-                      <div>📧 {order.customerDetails?.email}</div>
-                      <div>📞 {order.customerDetails?.phone}</div>
-                  </div>
-                  <div style={{marginBottom:'15px'}}>
-                    <select
-                      value={order.status || 'Feldolgozás alatt'}
-                      onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                      className="status-select"
-                      style={{ width: '100%', padding: '8px', borderRadius: '5px', background: '#f8fafc', border: `1px solid ${getStatusColor(order.status)}`, cursor: 'pointer' }}
-                    >
-                      <option value="Feldolgozás alatt">🟠 Feldolgozás alatt</option>
-                      <option value="Csomagolás">🔵 Csomagolás</option>
-                      <option value="Szállítás alatt">🟣 Szállítás alatt</option>
-                      <option value="Teljesítve">🟢 Teljesítve (Archivál)</option>
-                      <option value="Törölve">🔴 Törölve (Archivál)</option>
-                    </select>
-                  </div>
-                  <div style={{fontSize:'0.95rem', color:'#475569', marginBottom:'15px'}}>
-                    📍 <strong>Cím:</strong> {order.shippingAddress}
-                    {order.note && (
-                      <div style={{marginTop:'5px', fontStyle:'italic', background:'#fffbe6', padding:'8px', borderRadius:'4px', borderLeft: '3px solid #facc15'}}>
-                        " {order.note} "
-                      </div>
-                    )}
-                  </div>
-                  <div style={{background:'#f8fafc', padding:'10px', borderRadius:'8px', border: '1px solid #e2e8f0'}}>
-                    <strong style={{fontSize: '0.85rem', color: '#64748b'}}>Rendelt termékek:</strong>
-                    <ul style={{margin:'5px 0 0 0', paddingLeft:'20px', fontSize:'0.9rem', color:'#334155'}}>
-                      {order.products.map((p, i) => (
-                        <li key={i}>{p.name} <span style={{color:'#94a3b8'}}>x{p.quantity}</span></li>
-                      ))}
-                    </ul>
-                  </div>
+        {/* CHAT KÁRTYA (Javított word-break-el) */}
+        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <h3 style={{ margin: '0 0 15px 0' }}>💬 Ügyfélszolgálat</h3>
+          <div style={{ display: 'flex', flex: 1, border: '1px solid #e2e8f0', borderRadius: '10px', overflow: 'hidden' }}>
+            <div style={{ width: '130px', borderRight: '1px solid #e2e8f0', overflowY: 'auto', backgroundColor: '#f8fafc' }}>
+              {Object.keys(activeChats).map(uid => (
+                <div key={uid} onClick={() => selectChat(uid)} style={{ padding: '12px 10px', cursor: 'pointer', fontSize: '12px', background: selectedChatUser === uid ? '#3b82f6' : 'transparent', color: selectedChatUser === uid ? 'white' : 'inherit', borderBottom: '1px solid #f1f5f9' }}>
+                  {activeChats[uid].username}
                 </div>
               ))}
-        </div>
-        {/* --- 3. ÚJ: ÉLŐ CHAT KEZELÉS --- */}
-        <div style={adminChatStyles.mainContainer}>
-          <h2 style={{ color: '#1e293b', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '24px' }}>💬</span> Ügyfélszolgálati Központ
-          </h2>
-          
-          <div style={adminChatStyles.chatWrapper}>
-            {/* Bal oldali felhasználó lista */}
-            <div style={adminChatStyles.userSidebar}>
-              <div style={adminChatStyles.sidebarHeader}>Aktív beszélgetések</div>
-              {Object.keys(activeChats).length === 0 ? (
-                <p style={adminChatStyles.emptyText}>Nincs aktív csevegés</p>
-              ) : (
-                Object.keys(activeChats).map(uid => (
-                  <div 
-                    key={uid} 
-                    onClick={() => selectChat(uid)}
-                    style={{ 
-                      ...adminChatStyles.userItem,
-                      backgroundColor: selectedChatUser === uid ? '#3b82f6' : 'transparent',
-                      color: selectedChatUser === uid ? 'white' : '#475569'
-                    }}
-                  >
-                    <div style={adminChatStyles.userAvatar}>{activeChats[uid].username[0]}</div>
-                    <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {activeChats[uid].username}
-                    </div>
-                  </div>
-                ))
-              )}
             </div>
-
-            {/* Jobb oldali üzenetváltás */}
-            <div style={adminChatStyles.messageArea}>
-              {selectedChatUser ? (
-                <>
-                  <div style={adminChatStyles.msgHeader}>
-                    <strong>{activeChats[selectedChatUser].username}</strong>
-                    <span style={adminChatStyles.statusDot}></span>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <div ref={chatScrollRef} style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {selectedChatUser ? activeChats[selectedChatUser].messages.map((msg, i) => (
+                  <div key={i} style={{ alignSelf: msg.isAdmin ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                    <div style={{ background: msg.isAdmin ? '#3b82f6' : '#f1f5f9', color: msg.isAdmin ? 'white' : '#1e293b', padding: '8px 12px', borderRadius: '12px', fontSize: '13px', wordBreak: 'break-word' }}>
+                      {msg.message}
+                    </div>
+                    <div style={{fontSize: '0.65rem', color: '#94a3b8', marginTop: '2px', textAlign: msg.isAdmin ? 'right' : 'left'}}>{msg.time}</div>
                   </div>
-                  
-                  <div style={adminChatStyles.msgHistory}>
-                    {activeChats[selectedChatUser].messages.map((msg, i) => (
-                      <div key={i} style={{ 
-                        display: 'flex', 
-                        flexDirection: 'column',
-                        alignItems: msg.isAdmin ? 'flex-end' : 'flex-start',
-                        width: '100%'
-                      }}>
-                        <div style={{ 
-                          ...adminChatStyles.bubble,
-                          backgroundColor: msg.isAdmin ? '#3b82f6' : '#ffffff',
-                          color: msg.isAdmin ? '#ffffff' : '#1e293b',
-                          alignSelf: msg.isAdmin ? 'flex-end' : 'flex-start',
-                          borderRadius: msg.isAdmin ? '18px 18px 2px 18px' : '18px 18px 18px 2px',
-                          border: msg.isAdmin ? 'none' : '1px solid #e2e8f0'
-                        }}>
-                          {msg.message}
-                          <div style={{ 
-                            fontSize: '0.7rem', 
-                            marginTop: '5px', 
-                            opacity: 0.7, 
-                            textAlign: 'right' 
-                          }}>
-                            {msg.time}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={adminChatStyles.inputContainer}>
-                    <input 
-                      type="text" 
-                      value={adminMessage} 
-                      onChange={(e) => setAdminMessage(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && sendAdminReply()}
-                      placeholder="Írjon választ..."
-                      style={adminChatStyles.textInput}
-                    />
-                    <button onClick={sendAdminReply} style={adminChatStyles.sendBtn}>
-                      Küldés
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div style={adminChatStyles.noSelect}>
-                  <div style={{ fontSize: '40px' }}>✉️</div>
-                  <p>Válasszon ki egy ügyfelet a bal oldali listából</p>
+                )) : <p style={{ fontSize: '12px', textAlign: 'center', color: '#94a3b8' }}>Válassz csevegőt</p>}
+              </div>
+              {selectedChatUser && (
+                <div style={{ padding: '10px', borderTop: '1px solid #eee', display: 'flex', gap: '5px' }}>
+                  <input type="text" value={adminMessage} onChange={(e) => setAdminMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendAdminReply()} placeholder="Válasz..." style={{ flex: 1, padding: '8px', borderRadius: '20px', border: '1px solid #ddd', fontSize: '13px', outline: 'none' }} />
+                  <button onClick={sendAdminReply} style={{ background: '#3b82f6', color: 'white', border: 'none', width: '32px', height: '32px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>➡</button>
                 </div>
               )}
             </div>
           </div>
         </div>
+      </div>
 
+      {/* JOBB OSZLOP: GÖRDÍTHETŐ RENDELÉSEK */}
+      <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2 style={{ margin: 0 }}>🚚 Rendelések Kezelése</h2>
+          <label style={{ fontSize: '13px', cursor: 'pointer', background: 'white', padding: '8px 15px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+            <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Archívum
+          </label>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '20px' }}>
+          {filteredOrders.map(order => (
+            <div key={order._id} style={{ background: 'white', padding: '20px', borderRadius: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', borderLeft: `10px solid ${getStatusColor(order.status)}`, position: 'relative' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                <div>
+                  <strong style={{ fontSize: '18px' }}>{order.customerDetails?.name || "Vendég"}</strong>
+                  <div style={{ fontSize: '12px', color: '#64748b' }}>{new Date(order.createdAt).toLocaleString()}</div>
+                </div>
+                <button onClick={() => handleDeleteOrder(order._id)} style={{ border: 'none', background: '#fee2e2', color: '#ef4444', borderRadius: '50%', width: '25px', height: '25px', cursor: 'pointer' }}>✕</button>
+              </div>
+
+              {/* FIZETÉSI ADATOK */}
+              <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                <div style={{ flex: 1, padding: '10px', background: '#f8fafc', borderRadius: '10px' }}>
+                  <small style={{ color: '#64748b' }}>Fizetendő</small>
+                  <div style={{ fontWeight: 'bold' }}>{order.totalAmount} Ft</div>
+                </div>
+                <div style={{ flex: 1, padding: '10px', background: order.paymentMethod === 'bank_transfer' ? '#dcfce7' : '#fee2e2', borderRadius: '10px' }}>
+                  <small style={{ color: order.paymentMethod === 'bank_transfer' ? '#166534' : '#991b1b' }}>Fizetés</small>
+                  <div style={{ fontWeight: 'bold' }}>{order.paymentMethod === 'bank_transfer' ? '🏦 Átutalás' : '🚚 Utánvét'}</div>
+                </div>
+              </div>
+
+              {/* ÜGYFÉL KÉPEI */}
+              {order.customImages && order.customImages.length > 0 && (
+                <div style={{ marginBottom: '15px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold', display: 'block', marginBottom: '8px' }}>🖼️ Feltöltött fotók:</span>
+                  <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px' }}>
+                    {order.customImages.map((img, idx) => (
+                      <div key={idx} style={{ textAlign: 'center' }}>
+                        <a href={img} target="_blank" rel="noreferrer">
+                          <img src={img} alt="" style={{ width: '70px', height: '70px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #eee' }} />
+                        </a>
+                        <br /><a href={img} download style={{ fontSize: '10px', color: '#3b82f6', textDecoration: 'none' }}>Letöltés</a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ADATOK ÉS ÁLLAPOT */}
+              <div style={{ marginBottom: '15px' }}>
+                <select value={order.status} onChange={(e) => handleStatusChange(order._id, e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '10px', border: `2px solid ${getStatusColor(order.status)}`, fontWeight: 'bold', cursor: 'pointer' }}>
+                  <option value="Feldolgozás alatt">🟠 Feldolgozás alatt</option>
+                  <option value="Csomagolás">🔵 Csomagolás</option>
+                  <option value="Szállítás alatt">🟣 Szállítás alatt</option>
+                  <option value="Teljesítve">🟢 Teljesítve</option>
+                  <option value="Törölve">🔴 Törölve</option>
+                </select>
+              </div>
+
+              <div style={{ background: '#fdf2f2', padding: '12px', borderRadius: '10px', fontSize: '13px' }}>
+                📍 <strong>Szállítási cím:</strong> {order.shippingAddress}
+                <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px', color: '#4b5563' }}>
+                  {order.products.map((p, i) => <li key={i}>{p.name} x{p.quantity}</li>)}
+                </ul>
+                {order.note && <div style={{ marginTop: '10px', padding: '8px', background: '#fff', borderRadius: '5px', borderLeft: '3px solid #fbbf24', fontStyle: 'italic' }}>"{order.note}"</div>}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
-};
-
-const adminChatStyles = {
-  mainContainer: { 
-    marginTop: '40px', 
-    padding: '20px', 
-    backgroundColor: '#ffffff', 
-    borderRadius: '16px', 
-    boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-    gridColumn: '1 / -1', // EZ A KULCS: Kiterjeszti a chatet a teljes szélességre a rácsban
-    width: '100%'
-  },
-  chatWrapper: { 
-    display: 'flex', 
-    height: '650px', 
-    border: '1px solid #e2e8f0', 
-    borderRadius: '12px', 
-    overflow: 'hidden',
-    backgroundColor: '#fff'
-  },
-  userSidebar: { 
-    width: '250px', // Fix szélesség a listának
-    minWidth: '200px',
-    backgroundColor: '#f8fafc', 
-    borderRight: '1px solid #e2e8f0', 
-    display: 'flex', 
-    flexDirection: 'column' 
-  },
-  messageArea: { 
-    flex: 1, // Ez kitölti a maradék hatalmas helyet
-    display: 'flex', 
-    flexDirection: 'column', 
-    backgroundColor: '#ffffff',
-    minWidth: '0' 
-  },
-  msgHistory: { 
-    flex: 1, 
-    padding: '25px', 
-    overflowY: 'auto', 
-    display: 'flex', 
-    flexDirection: 'column',
-    gap: '15px',
-    backgroundColor: '#f1f5f9' // Kicsit elütő háttér a buborékoknak
-  },
-  bubble: { 
-    maxWidth: '80%', 
-    padding: '12px 18px', 
-    borderRadius: '15px',
-    fontSize: '0.95rem',
-    lineHeight: '1.5',
-    wordBreak: 'break-word', // Megakadályozza a szöveg kilógását
-    whiteSpace: 'pre-wrap', 
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-  },
-  inputContainer: { 
-    padding: '20px', 
-    borderTop: '1px solid #e2e8f0', 
-    display: 'flex', 
-    gap: '12px',
-    backgroundColor: '#fff'
-  },
-  textInput: { 
-    flex: 1, 
-    padding: '12px 20px', 
-    borderRadius: '25px', 
-    border: '1px solid #cbd5e1', 
-    outline: 'none',
-    fontSize: '1rem'
-  }
 };
 
 export default AdminPanel;
