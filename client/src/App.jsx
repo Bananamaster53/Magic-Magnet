@@ -67,9 +67,9 @@ function App() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
+    setContactData({ name: '', email: '', phone: '' }); // Adatok ürítése
     toast.info("Sikeres kijelentkezés!");
-    // Itt nem kell window.location.href, a React Router megoldja
-  };
+};
 
   // --- KOSÁR ÉS RENDELÉS FUNKCIÓK (Változatlanok maradnak) ---
   const addToCart = (magnet) => {
@@ -151,7 +151,7 @@ function App() {
       <div className="app">
         <ToastContainer position="bottom-right" theme="colored" />
 
-        <Navbar user={user} setUser={setUser} cartCount={cart.length} />
+        
 
         <div className="main-content">
           {/* --- ITT VANNAK A ROUTE-OK BEKÖTVE --- */}

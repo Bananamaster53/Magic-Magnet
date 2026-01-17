@@ -297,17 +297,10 @@ input[type="file"] {
 
 /* A becsúszó fiók */
 .cart-drawer {
-  position: fixed;
-  top: 0; right: -450px; /* Kezdetben a képernyőn kívül van */
-  width: 400px;
-  max-width: 90%;
-  height: 100%;
-  background: white;
-  z-index: 1600;
-  box-shadow: -5px 0 25px rgba(0,0,0,0.15);
-  transition: right 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); /* Finom rugózás */
-  display: flex;
-  flex-direction: column;
+  background: rgba(255, 255, 255, 0.85); /* Üvegszerű háttér */
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
 }
 
 .cart-drawer.open {
@@ -467,15 +460,12 @@ input[type="file"] {
 
 /* Maga az ablak középen */
 .checkout-modal {
-  background: white;
-  width: 500px;
-  max-width: 95%;
-  border-radius: 16px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Rugalmas megjelenés */
-  overflow: hidden;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(15px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: modalPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes popIn {
@@ -539,20 +529,20 @@ input[type="file"] {
 .back-btn:hover { border-color: var(--text-dark); color: var(--text-dark); }
 
 .confirm-order-btn {
-  background: var(--success);
+  background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
   color: white;
   border: none;
-  padding: 12px 25px;
-  border-radius: 8px;
+  padding: 15px 30px;
+  border-radius: 14px;
   font-weight: 700;
-  font-size: 1rem;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3);
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 .confirm-order-btn:hover {
-  transform: translateY(-2px);
+  transform: scale(1.02);
   filter: brightness(1.1);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
 }
 
 /* Modal háttér középre igazításhoz (App.jsx-ben .modal-overlay már van, de biztosítjuk) */
