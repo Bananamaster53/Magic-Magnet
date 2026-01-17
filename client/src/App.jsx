@@ -3,12 +3,15 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Products from './pages/Products';
-import Navbar from './components/navbar';
 
+// Komponensek
+import Navbar from './components/navbar';
+import ChatWidget from './components/ChatWidget';
 import { API_URL } from './config';
 
+// Oldalak
 import Home from './pages/Home';
+import Products from './pages/Products';
 import AdminPanel from './pages/AdminPanel';
 import Register from './pages/Register';
 import Login from './pages/Login';
@@ -18,20 +21,21 @@ import Shipping from './pages/Shipping';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 
-import ChatWidget from './components/ChatWidget';
 import './App.css';
 
 function App() {
+  // --- ÁLLAPOTOK ---
   const [magnets, setMagnets] = useState([]);
   const [customImages, setCustomImages] = useState([]);
   const [cart, setCart] = useState([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // ÚJ: Betöltési állapot
+  const [loading, setLoading] = useState(true);
+  
+  // Checkout állapotok
   const [orderNote, setOrderNote] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
-
   const [shippingData, setShippingData] = useState({ zip: '', city: '', street: '', details: '' });
   const [contactData, setContactData] = useState({ name: '', email: '', phone: '' });
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
@@ -39,48 +43,45 @@ function App() {
   const shippingCost = 990;
   const placeholderImg = "https://placehold.co/100?text=...";
 
+  // Számítások
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-  const productsTotal = cartTotal;
-  const finalTotal = productsTotal + shippingCost;
+  const finalTotal = cartTotal + shippingCost;
 
+  // --- BETÖLTÉS ÉS AUTH ---
   useEffect(() => {
-    // 1. Felhasználó visszaállítása LocalStorage-ból
+    // 1. Felhasználó visszatöltése
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
     if (storedUser && token) {
-      const u = JSON.parse(storedUser);
-      setUser(u);
-      setContactData({ email: u.email, name: u.username, phone: '' });
+      try {
+        const u = JSON.parse(storedUser);
+        setUser(u);
+        setContactData({ email: u.email, name: u.username, phone: '' });
+      } catch (e) {
+        console.error("Hiba a user betöltésekor", e);
+        localStorage.removeItem('user'); // Hibás adat törlése
+      }
     }
-    
-    // Jelezzük, hogy az alapvető user ellenőrzés megvolt
     setLoading(false);
 
     // 2. Termékek lekérése
     axios.get(`${API_URL}/magnets`)
       .then(res => setMagnets(res.data))
-      .catch(err => console.error("Hiba a termékek betöltésekor:", err));
+      .catch(err => console.error("Hiba a termékeknél:", err));
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    setContactData({ name: '', email: '', phone: '' }); // Adatok ürítése
-    toast.info("Sikeres kijelentkezés!");
-};
-
-  // --- KOSÁR ÉS RENDELÉS FUNKCIÓK (Változatlanok maradnak) ---
+  // --- KOSÁR FUNKCIÓK ---
   const addToCart = (magnet) => {
     const existingItem = cart.find(item => item._id === magnet._id);
     if (existingItem) {
       setCart(cart.map(item => item._id === magnet._id ? { ...item, quantity: item.quantity + 1 } : item));
-      toast.info(`+1 ${magnet.name} a kosárban!`, { autoClose: 1000 });
+      toast.info(`+1 ${magnet.name}`, { autoClose: 1000 });
     } else {
       setCart([...cart, { ...magnet, quantity: 1 }]);
       toast.success("Kosárba került! 🛒", { autoClose: 1000 });
     }
+    setIsCartOpen(true); // Opcionális: megnyitja a kosarat hozzáadáskor
   };
 
   const updateQuantity = (id, delta) => {
@@ -96,330 +97,336 @@ function App() {
     setIsCheckoutOpen(true);
   };
 
-  const handleAddressChange = (e) => setShippingData({ ...shippingData, [e.target.name]: e.target.value });
-  const handleContactChange = (e) => setContactData({ ...contactData, [e.target.name]: e.target.value });
-
+  // --- RENDELÉS LEADÁSA ---
   const placeOrder = async () => {
-    if (!termsAccepted) return toast.error("A rendeléshez el kell fogadnod az ÁSZF-et!");
+    if (!termsAccepted) return toast.error("Fogadd el az ÁSZF-et!");
+    if (!contactData.name || !contactData.email || !shippingData.city || !shippingData.street) {
+      return toast.error("Kérlek tölts ki minden kötelező mezőt!");
+    }
 
     const formData = new FormData();
-    
     const orderData = {
       products: cart.map(item => ({ magnet: item._id, name: item.name, price: item.price, quantity: item.quantity })),
       totalAmount: finalTotal,
       shippingCost,
-      shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street}${shippingData.details ? ', ' + shippingData.details : ''}`,
+      shippingAddress: `${shippingData.zip} ${shippingData.city}, ${shippingData.street} ${shippingData.details || ''}`,
       customerDetails: contactData,
       note: orderNote,
-      paymentMethod: paymentMethod // ÚJ: Fizetési mód hozzáadása a küldött adathoz
+      paymentMethod: paymentMethod
     };
 
     formData.append('orderData', JSON.stringify(orderData));
-
     if (customImages && customImages.length > 0) {
-      for (let i = 0; i < customImages.length; i++) {
-        formData.append('customImages', customImages[i]);
-      }
+      Array.from(customImages).forEach(file => formData.append('customImages', file));
     }
 
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${API_URL}/orders`, formData, {
-        headers: { 
-          'x-auth-token': token,
-          'Content-Type': 'multipart/form-data' 
-        }
+      await axios.post(`${API_URL}/orders`, formData, {
+        headers: { 'x-auth-token': token, 'Content-Type': 'multipart/form-data' }
       });
-
-      if (response.status === 201 || response.status === 200) {
-        toast.success("Rendelés sikeresen leadva! 🚀");
-        setCart([]);
-        setCustomImages([]);
-        setIsCheckoutOpen(false);
-      }
+      toast.success("Rendelés sikeresen leadva! 🚀");
+      setCart([]);
+      setCustomImages([]);
+      setIsCheckoutOpen(false);
     } catch (err) {
-      console.error("Hiba a küldésnél:", err);
-      toast.error("Hiba történt a rendelés során!");
+      console.error(err);
+      toast.error("Hiba történt a rendelés során.");
     }
   };
 
-  // Várakozás, amíg a useEffect beolvassa a user-t
-  if (loading) return <div className="loading-screen">Betöltés...</div>;
+  // Input kezelők
+  const handleAddressChange = (e) => setShippingData({ ...shippingData, [e.target.name]: e.target.value });
+  const handleContactChange = (e) => setContactData({ ...contactData, [e.target.name]: e.target.value });
+
+  if (loading) return <div style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh'}}>Betöltés...</div>;
 
   return (
     <BrowserRouter>
-      <div className="app">
+      {/* FONTOS: A paddingTop: 80px biztosítja, hogy a fix Navbar ne takarja ki a tartalmat.
+         A háttérszín (background) az egész alkalmazásra érvényes.
+      */}
+      <div className="app" style={{ 
+        paddingTop: '80px', 
+        minHeight: '100vh', 
+        background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+        fontFamily: "'Inter', sans-serif"
+      }}>
         <ToastContainer position="bottom-right" theme="colored" />
 
-        
+        {/* --- NAVBAR (FIXED TOP) --- */}
+        <Navbar 
+          user={user} 
+          setUser={setUser} 
+          cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)} 
+          onCartClick={() => setIsCartOpen(true)} // Ez nyitja meg a kosarat
+        />
 
-        <div className="main-content">
-          {/* --- ITT VANNAK A ROUTE-OK BEKÖTVE --- */}
+        {/* --- FŐ TARTALOM --- */}
+        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
           <Routes>
-             <Route path="/" element={<Home magnets={magnets.filter(m => m.isFeatured)} addToCart={addToCart} />} />
-             <Route path="/admin" element={user && user.isAdmin ? <AdminPanel /> : <Navigate to="/login" />} />
-             <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
-             <Route path="/register" element={<Register />} />
-             <Route path="/login" element={<Login />} />
-             <Route path="/products" element={<Products magnets={magnets} addToCart={addToCart} />} />
-             {/* ÚJ OLDALAK */}
-             <Route path="/about" element={<About />} />
-             <Route path="/shipping" element={<Shipping />} />
-             <Route path="/privacy" element={<Privacy />} />
-             <Route path="/terms" element={<Terms />} />
-             
+            <Route path="/" element={<Home magnets={magnets.filter(m => m.isFeatured)} addToCart={addToCart} />} />
+            <Route path="/admin" element={user && user.isAdmin ? <AdminPanel /> : <Navigate to="/login" />} />
+            <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<Login setUser={setUser} />} />
+            <Route path="/products" element={<Products magnets={magnets} addToCart={addToCart} />} />
+            
+            <Route path="/about" element={<About />} />
+            <Route path="/shipping" element={<Shipping />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
           </Routes>
         </div>
 
-        <footer className="footer">
-          <div className="container footer-grid">
-            
-            <div className="footer-col">
-              <h3>🧲 Magic Magnet Hungary</h3>
-              <p>Egyedi hűtőmágnesek minden alkalomra. A legjobb minőség, közvetlenül a gyártótól.</p>
-            </div>
-
-            <div className="footer-col">
-              <h4>Információk</h4>
-              <ul>
-                {/* ÚJ: Linkek használata, hogy ne töltődjön újra az oldal */}
-                <li><Link to="/about">Rólunk</Link></li>
-                <li><Link to="/shipping">Szállítási információk</Link></li>
-                <li><Link to="/privacy">Adatvédelmi nyilatkozat</Link></li>
-                <li><Link to="/terms">Általános Szerződési Feltételek (ÁSZF)</Link></li>
-              </ul>
-            </div>
-
-            <div className="footer-col">
-              <h4>Kapcsolat</h4>
-              <ul>
-                <li>
-                  <a href="https://maps.app.goo.gl/kGofgeBBSasnqxBKA" target="_blank" rel="noreferrer">
-                    📍 7431 Juta, Szőlőhegy u.
-                  </a>
-                </li>
-                <li>
-                  <a href="mailto:info@magnesmester.hu">
-                    📧 info@magnesmester.hu
-                  </a>
-                </li>
-                <li>
-                  <a href="tel:+36205086108">
-                    📞 +36 20 508 6108
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div className="footer-col">
-              <h4>Kövess minket</h4>
-              <div className="social-icons">
-                <a href="https://www.facebook.com/magicmagnethungary?locale=hu_HU" target="_blank" rel="noreferrer">Facebook</a> • 
-                <a href="https://www.instagram.com/magicmagnethungary?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noreferrer"> Instagram</a> • 
-                <a href="https://www.tiktok.com/@magicmagnethungary?is_from_webapp=1&sender_device=pc" target="_blank" rel="noreferrer"> TikTok</a>
-              </div>
-            </div>
-
+        {/* --- SIDE CART (JOBB OLDALI SÁV) --- */}
+        {/* Sötét háttér overlay */}
+        <div 
+          className={`cart-overlay ${isCartOpen ? 'open' : ''}`} 
+          style={{ 
+            display: isCartOpen ? 'block' : 'none', 
+            position: 'fixed', inset: 0, 
+            backgroundColor: 'rgba(0,0,0,0.5)', 
+            backdropFilter: 'blur(3px)', 
+            zIndex: 1001 
+          }}
+          onClick={() => setIsCartOpen(false)}
+        ></div>
+        
+        {/* Maga a kosár doboz */}
+        <div 
+          className={`cart-drawer ${isCartOpen ? 'open' : ''}`} 
+          style={{ 
+            position: 'fixed', 
+            top: 0, 
+            right: isCartOpen ? 0 : '-450px', // Animáció: ki-be csúszás
+            width: '100%', maxWidth: '420px', 
+            height: '100vh', 
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 1002, 
+            transition: 'right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+            display: 'flex', flexDirection: 'column',
+            boxShadow: '-10px 0 30px rgba(0,0,0,0.1)'
+          }}
+        >
+          <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: '22px' }}>🛒 Kosarad</h2>
+            <button onClick={() => setIsCartOpen(false)} style={{ border: 'none', background: '#f1f5f9', width: '36px', height: '36px', borderRadius: '50%', cursor: 'pointer', fontSize: '18px' }}>✕</button>
           </div>
-          <div className="footer-bottom">
-            <p>© 2024 Magic Magnet Hungary. Minden jog fenntartva.</p>
-          </div>
-        </footer>
-
-        {/* --- SIDE CART --- */}
-        <div className={`cart-overlay ${isCartOpen ? 'open' : ''}`} onClick={() => setIsCartOpen(false)}></div>
-        <div className={`cart-drawer ${isCartOpen ? 'open' : ''}`}>
-          <div className="cart-header">
-            <h2>Kosár</h2>
-            <button onClick={() => setIsCartOpen(false)} className="close-cart-btn">✕</button>
-          </div>
-          <div className="cart-body">
+          
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px' }}>
             {cart.length === 0 ? (
-              <div className="empty-cart"><span style={{fontSize: '3rem'}}>🛒</span><p>Még üres a kosarad.</p></div>
-            ) : (
-              <div className="cart-items-list">
-                {cart.map((item) => (
-                  <div key={item._id} className="cart-item-row">
-                    <img src={item.imageUrl || placeholderImg} alt={item.name} onError={(e) => { e.target.src = placeholderImg; }} className="cart-thumb" />
-                    <div className="cart-item-info">
-                      <div className="cart-item-name">{item.name}</div>
-                      <div className="cart-item-price">{item.price * item.quantity} Ft</div>
-                      <div className="quantity-controls">
-                        <button onClick={() => updateQuantity(item._id, -1)} className="qty-btn">-</button>
-                        <span>{item.quantity} db</span>
-                        <button onClick={() => updateQuantity(item._id, 1)} className="qty-btn">+</button>
-                      </div>
-                    </div>
-                    <button onClick={() => removeFromCart(item._id)} className="remove-item-btn">🗑️</button>
-                  </div>
-                ))}
+              <div style={{ textAlign: 'center', marginTop: '50px', color: '#64748b' }}>
+                <div style={{ fontSize: '50px', marginBottom: '10px' }}>🛍️</div>
+                <p>Még üres a kosarad.</p>
+                <button onClick={() => setIsCartOpen(false)} style={{ marginTop: '10px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Vásárlás folytatása</button>
               </div>
+            ) : (
+              cart.map((item) => (
+                <div key={item._id} style={{ display: 'flex', gap: '15px', marginBottom: '15px', padding: '10px', background: 'white', borderRadius: '12px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', alignItems: 'center' }}>
+                  <img src={item.imageUrl || placeholderImg} alt={item.name} style={{ width: '60px', height: '60px', borderRadius: '8px', objectFit: 'cover' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px', marginBottom: '4px' }}>{item.name}</div>
+                    <div style={{ color: '#3b82f6', fontWeight: 'bold' }}>{item.price * item.quantity} Ft</div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f8fafc', padding: '5px', borderRadius: '8px' }}>
+                    <button onClick={() => updateQuantity(item._id, -1)} style={{ width: '25px', height: '25px', border: 'none', background: 'white', borderRadius: '5px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>-</button>
+                    <span style={{ fontSize: '13px', minWidth: '20px', textAlign: 'center' }}>{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item._id, 1)} style={{ width: '25px', height: '25px', border: 'none', background: 'white', borderRadius: '5px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>+</button>
+                  </div>
+                  <button onClick={() => removeFromCart(item._id)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '18px', padding: '5px' }}>🗑️</button>
+                </div>
+              ))
             )}
           </div>
+
           {cart.length > 0 && (
-            <div className="cart-footer-section">
-              <div className="cart-summary"><span>Részösszeg</span><span className="summary-price">{cartTotal} Ft</span></div>
-              <button onClick={startCheckout} className="checkout-btn-large">Tovább a rendeléshez</button>
+            <div style={{ padding: '25px', borderTop: '1px solid #e2e8f0', background: 'white' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 'bold', fontSize: '18px' }}>
+                <span>Összesen:</span>
+                <span style={{ color: '#3b82f6' }}>{cartTotal} Ft</span>
+              </div>
+              <button 
+                onClick={startCheckout} 
+                style={{ 
+                  width: '100%', padding: '15px', 
+                  background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)', 
+                  color: 'white', border: 'none', borderRadius: '12px', 
+                  fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
+                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
+                }}
+              >
+                Tovább a rendeléshez ➡
+              </button>
             </div>
           )}
         </div>
 
-        {/* --- CHECKOUT MODAL --- */}
+        {/* --- CHECKOUT MODAL (Modernizálva) --- */}
         {isCheckoutOpen && (
-          <div className="modal-overlay">
-            <div className="checkout-modal">
-              <div className="checkout-header">
-                <h2>🛍️ Rendelés Véglegesítése</h2>
-                <button onClick={() => setIsCheckoutOpen(false)} className="close-cart-btn">✕</button>
+          <div style={{ 
+            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', 
+            backdropFilter: 'blur(5px)', zIndex: 2000, 
+            display: 'flex', justifyContent: 'center', alignItems: 'center' 
+          }}>
+            <div style={{ 
+              width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
+              backgroundColor: 'white', borderRadius: '20px', padding: '0', 
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              display: 'flex', flexDirection: 'column'
+            }}>
+              
+              <div style={{ padding: '20px 30px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, background: 'white', zIndex: 10 }}>
+                <h2 style={{ margin: 0, fontSize: '24px' }}>🛍️ Rendelés Leadása</h2>
+                <button onClick={() => setIsCheckoutOpen(false)} style={{ border: 'none', background: 'none', fontSize: '24px', cursor: 'pointer' }}>✕</button>
               </div>
 
-              <div className="checkout-body">
+              <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
                 
-                <div className="checkout-section">
-                  <h3>👤 Kapcsolattartó adatok</h3>
-                  <div className="form-group">
-                    <label>Teljes név</label>
-                    <input type="text" name="name" value={contactData.name} onChange={handleContactChange} placeholder="Pl. Minta János" />
-                  </div>
-                  <div className="address-grid">
-                    <div className="form-group">
-                      <label>Email cím</label>
-                      <input type="email" name="email" value={contactData.email} onChange={handleContactChange} placeholder="janos@email.com" />
-                    </div>
-                    <div className="form-group">
-                      <label>Telefonszám</label>
-                      <input type="tel" name="phone" value={contactData.phone} onChange={handleContactChange} placeholder="+36 30 123 4567" />
+                {/* 1. Kapcsolattartó */}
+                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
+                  <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>👤 Kapcsolattartó</h3>
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    <input type="text" name="name" value={contactData.name} onChange={handleContactChange} placeholder="Teljes név" style={inputStyle} />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      <input type="email" name="email" value={contactData.email} onChange={handleContactChange} placeholder="Email cím" style={inputStyle} />
+                      <input type="tel" name="phone" value={contactData.phone} onChange={handleContactChange} placeholder="Telefonszám" style={inputStyle} />
                     </div>
                   </div>
                 </div>
 
-                <div className="checkout-section">
-                  <h3>📍 Szállítási adatok</h3>
-                  <div className="address-grid">
-                    <div className="form-group" style={{flex: '1'}}>
-                      <label>Irsz.</label>
-                      <input type="text" name="zip" value={shippingData.zip} onChange={handleAddressChange} placeholder="1051" />
+                {/* 2. Szállítás */}
+                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
+                  <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>📍 Szállítási cím</h3>
+                  <div style={{ display: 'grid', gap: '15px' }}>
+                    <div style={{ display: 'flex', gap: '15px' }}>
+                      <input type="text" name="zip" value={shippingData.zip} onChange={handleAddressChange} placeholder="Irsz." style={{ ...inputStyle, width: '80px' }} />
+                      <input type="text" name="city" value={shippingData.city} onChange={handleAddressChange} placeholder="Város" style={{ ...inputStyle, flex: 1 }} />
                     </div>
-                    <div className="form-group" style={{flex: '3'}}>
-                      <label>Város</label>
-                      <input type="text" name="city" value={shippingData.city} onChange={handleAddressChange} placeholder="Budapest" />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>Utca, házszám</label>
-                    <input type="text" name="street" value={shippingData.street} onChange={handleAddressChange} placeholder="Kossuth Lajos utca 12." />
-                  </div>
-                  <div className="form-group">
-                    <label>Emelet, ajtó, egyéb (opcionális)</label>
-                    <input type="text" name="details" value={shippingData.details} onChange={handleAddressChange} placeholder="3. emelet, 12-es kapucsengő" />
+                    <input type="text" name="street" value={shippingData.street} onChange={handleAddressChange} placeholder="Utca, házszám" style={inputStyle} />
+                    <input type="text" name="details" value={shippingData.details} onChange={handleAddressChange} placeholder="Emelet, ajtó (opcionális)" style={inputStyle} />
                   </div>
                 </div>
 
-                <div className="checkout-section">
-                  <h3>💳 Fizetési mód</h3>
-                  <div className="payment-selector" style={{ display: 'flex', gap: '20px', padding: '10px 0' }}>
-                    <label className="radio-label" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="radio" 
-                        name="payment" 
-                        value="bank_transfer" 
-                        checked={paymentMethod === 'bank_transfer'} 
-                        onChange={(e) => setPaymentMethod(e.target.value)} 
-                      />
-                      <span>Banki átutalás</span>
+                {/* 3. Fizetés */}
+                <div>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>💳 Fizetési mód</h3>
+                  <div style={{ display: 'flex', gap: '15px' }}>
+                    <label style={radioLabelStyle(paymentMethod === 'bank_transfer')}>
+                      <input type="radio" name="payment" value="bank_transfer" checked={paymentMethod === 'bank_transfer'} onChange={(e) => setPaymentMethod(e.target.value)} style={{ marginRight: '10px' }} />
+                      Banki átutalás
                     </label>
-                    <label className="radio-label" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input 
-                        type="radio" 
-                        name="payment" 
-                        value="cash_on_delivery" 
-                        checked={paymentMethod === 'cash_on_delivery'} 
-                        onChange={(e) => setPaymentMethod(e.target.value)} 
-                      />
-                      <span>Utánvét (futárnál)</span>
+                    <label style={radioLabelStyle(paymentMethod === 'cash_on_delivery')}>
+                      <input type="radio" name="payment" value="cash_on_delivery" checked={paymentMethod === 'cash_on_delivery'} onChange={(e) => setPaymentMethod(e.target.value)} style={{ marginRight: '10px' }} />
+                      Utánvét
                     </label>
                   </div>
-                  <p style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    {paymentMethod === 'bank_transfer' 
-                      ? "Az utaláshoz szükséges adatokat e-mailben küldjük el a rendelés után." 
-                      : "A rendelés összegét a futárnál tudja kiegyenlíteni készpénzzel vagy kártyával."}
-                  </p>
                 </div>
 
-                <div className="checkout-section" style={{background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1'}}>
-                  <h3>🖼️ Egyedi képek feltöltése</h3>
-                  <p style={{fontSize: '0.85rem', color: '#64748b', marginBottom: '10px'}}>Ha egyedi képet szeretnél a mágnesre, itt töltheted fel (akár többet is).</p>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
-                    multiple 
-                    onChange={(e) => setCustomImages(e.target.files)} 
-                    style={{width: '100%', padding: '5px'}}
-                  />
-                  {customImages && customImages.length > 0 && (
-                    <div style={{marginTop: '10px', color: '#10b981', fontWeight: 'bold', fontSize: '0.9rem'}}>
-                      ✅ {customImages.length} db kép kiválasztva
-                    </div>
-                  )}
-                </div>
-
-                <div className="checkout-section">
-                   <h3>📝 Megjegyzés (opcionális)</h3>
-                   <textarea rows="2" placeholder="Megjegyzés a rendeléshez..." value={orderNote} onChange={(e) => setOrderNote(e.target.value)} className="note-input"></textarea>
-                </div>
-
-                <div className="order-summary-box">
-                  <h3>Összesítés</h3>
-                  <ul className="summary-list">
-                    {cart.map(item => (
-                      <li key={item._id}>
-                        <span>{item.name} x{item.quantity}</span>
-                        <span>{item.price * item.quantity} Ft</span>
-                      </li>
-                    ))}
-                    <li style={{borderTop:'1px dashed #cbd5e1', marginTop:'10px', paddingTop:'10px', color:'#64748b'}}>
-                      <span>Szállítási költség (GLS)</span>
-                      <span>{shippingCost} Ft</span>
-                    </li>
-                  </ul>
-                  <div className="checkout-total">
-                    Fizetendő: {productsTotal + shippingCost} Ft
+                {/* 4. Egyedi képek */}
+                <div>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>🖼️ Egyedi képek (Opcionális)</h3>
+                  <div style={{ border: '2px dashed #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center', cursor: 'pointer', background: '#fdfbf7' }}>
+                    <input type="file" multiple accept="image/*" onChange={(e) => setCustomImages(e.target.files)} style={{ width: '100%' }} />
+                    {customImages.length > 0 && <p style={{ color: '#10b981', fontWeight: 'bold', margin: '10px 0 0 0' }}>{customImages.length} kép kiválasztva ✅</p>}
                   </div>
                 </div>
 
-                <div className="legal-section">
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={termsAccepted} 
-                      onChange={(e) => setTermsAccepted(e.target.checked)} 
-                    />
-                    <span>
-                      Elfogadom az <Link to="/terms" target="_blank">Általános Szerződési Feltételeket</Link> és az <Link to="/privacy" target="_blank">Adatkezelési Tájékoztatót</Link>.
-                    </span>
-                  </label>
-                  
-                  {/* Ez az új rész a kép alapján */}
-                  <div className="legal-text" style={{ marginTop: '15px', fontSize: '0.85rem', color: '#475569', fontStyle: 'italic' }}>
-                    A "Rendelés leadása" gomb megnyomásával Ön tudomásul veszi, hogy a rendelés <strong>fizetési kötelezettséggel jár</strong>.
+                {/* 5. Megjegyzés */}
+                <textarea rows="2" placeholder="Megjegyzés a futárnak vagy nekünk..." value={orderNote} onChange={(e) => setOrderNote(e.target.value)} style={{ ...inputStyle, fontFamily: 'inherit' }}></textarea>
+
+                {/* Összesítés */}
+                <div style={{ padding: '20px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span>Termékek ára:</span>
+                    <span>{cartTotal} Ft</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#64748b' }}>
+                    <span>Szállítás:</span>
+                    <span>{shippingCost} Ft</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '20px', borderTop: '1px dashed #86efac', paddingTop: '10px', marginTop: '10px' }}>
+                    <span>Végösszeg:</span>
+                    <span style={{ color: '#15803d' }}>{finalTotal} Ft</span>
                   </div>
                 </div>
+
+                {/* Legal */}
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: '#475569', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} style={{ marginTop: '3px' }} />
+                  <span>Elfogadom az <Link to="/terms" target="_blank" style={{color: '#3b82f6'}}>ÁSZF</Link>-et és az <Link to="/privacy" target="_blank" style={{color: '#3b82f6'}}>Adatvédelmi nyilatkozatot</Link>. Tudomásul veszem, hogy a rendelés fizetési kötelezettséggel jár.</span>
+                </label>
+
               </div>
 
-              <div className="checkout-footer">
-                <button onClick={() => setIsCheckoutOpen(false)} className="back-btn">Vissza</button>
-                <button onClick={placeOrder} className="confirm-order-btn">
-                  Rendelés Leadása ({productsTotal + shippingCost} Ft)
+              <div style={{ padding: '20px 30px', borderTop: '1px solid #eee', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                <button onClick={() => setIsCheckoutOpen(false)} style={{ padding: '12px 20px', borderRadius: '10px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: '600' }}>Mégse</button>
+                <button 
+                  onClick={placeOrder} 
+                  style={{ 
+                    padding: '12px 30px', borderRadius: '10px', border: 'none', 
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
+                    color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px',
+                    boxShadow: '0 4px 10px rgba(16, 185, 129, 0.4)'
+                  }}
+                >
+                  Rendelés Leadása
                 </button>
               </div>
+
             </div>
           </div>
         )}
+
+        {/* --- LÁBLÉC --- */}
+        <footer className="footer" style={{ background: 'white', borderTop: '1px solid #eee', padding: '60px 20px', marginTop: 'auto' }}>
+          <div className="container footer-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+            <div>
+              <h3 style={{ margin: '0 0 15px 0' }}>🧲 Magic Magnet</h3>
+              <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>Egyedi hűtőmágnesek, prémium minőségben, közvetlenül a gyártótól.</p>
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 15px 0' }}>Információk</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <li><Link to="/about" style={{ textDecoration: 'none', color: '#64748b' }}>Rólunk</Link></li>
+                <li><Link to="/shipping" style={{ textDecoration: 'none', color: '#64748b' }}>Szállítás</Link></li>
+                <li><Link to="/terms" style={{ textDecoration: 'none', color: '#64748b' }}>ÁSZF</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 style={{ margin: '0 0 15px 0' }}>Kapcsolat</h4>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px', color: '#64748b', fontSize: '14px' }}>
+                <li>📍 7431 Juta, Szőlőhegy u.</li>
+                <li>📧 info@magnesmester.hu</li>
+                <li>📞 +36 20 508 6108</li>
+              </ul>
+            </div>
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '20px', color: '#94a3b8', fontSize: '13px' }}>
+            © 2025 Magic Magnet Hungary. Minden jog fenntartva.
+          </div>
+        </footer>
 
         <ChatWidget user={user} />
       </div>
     </BrowserRouter>
   );
 }
+
+// Segéd stílusok a tiszta kódért
+const inputStyle = {
+  width: '100%', padding: '12px', borderRadius: '8px', 
+  border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px',
+  transition: 'border 0.2s'
+};
+
+const radioLabelStyle = (checked) => ({
+  flex: 1, padding: '15px', borderRadius: '10px', 
+  border: checked ? '2px solid #3b82f6' : '1px solid #cbd5e1', 
+  background: checked ? '#eff6ff' : 'white', cursor: 'pointer',
+  display: 'flex', alignItems: 'center', fontWeight: checked ? 'bold' : 'normal',
+  transition: '0.2s'
+});
 
 export default App;
