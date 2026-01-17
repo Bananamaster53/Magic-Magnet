@@ -4,6 +4,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Products from './pages/Products';
+import Navbar from './components/navbar';
 
 import { API_URL } from './config';
 
@@ -150,34 +151,7 @@ function App() {
       <div className="app">
         <ToastContainer position="bottom-right" theme="colored" />
 
-        <nav className="navbar">
-          <div className="container nav-container">
-            <Link to="/" className="logo">🧲 Magic Magnet Hungary</Link>
-            <div className="nav-links">
-              <Link to="/">Főoldal</Link>
-              
-              {/* ÚJ LINK: Itt érhető el az összes mágnes */}
-              <Link to="/products">Mágnesek</Link>
-
-              {user ? (
-                <>
-                  <Link to="/profile">Profil</Link>
-                  {user.isAdmin && <Link to="/admin" style={{color: '#f59e0b'}}>Admin</Link>}
-                  <button onClick={handleLogout} className="logout-btn">Kilépés</button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login">Belépés</Link>
-                  <Link to="/register" className="highlight-link">Regisztráció</Link>
-                </>
-              )}
-              
-              <button className="cart-btn" onClick={() => setIsCartOpen(true)}>
-                🛒 <span className="badge">{cart.reduce((acc, item) => acc + item.quantity, 0)}</span>
-              </button>
-            </div>
-          </div>
-        </nav>
+        <Navbar user={user} setUser={setUser} cartCount={cart.length} />
 
         <div className="main-content">
           {/* --- ITT VANNAK A ROUTE-OK BEKÖTVE --- */}
