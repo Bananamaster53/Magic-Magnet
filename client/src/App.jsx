@@ -4,12 +4,10 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-// Komponensek
-import Navbar from './components/navbar';
+import Navbar from './components/Navbar'; // Győződj meg róla, hogy ez a helyes elérési út!
 import ChatWidget from './components/ChatWidget';
 import { API_URL } from './config';
 
-// Oldalak
 import Home from './pages/Home';
 import Products from './pages/Products';
 import AdminPanel from './pages/AdminPanel';
@@ -21,7 +19,7 @@ import Shipping from './pages/Shipping';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 
-import './App.css';
+import './App.css'; // Fontos a globális stílusokhoz
 
 function App() {
   // --- ÁLLAPOTOK ---
@@ -43,13 +41,11 @@ function App() {
   const shippingCost = 990;
   const placeholderImg = "https://placehold.co/100?text=...";
 
-  // Számítások
   const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   const finalTotal = cartTotal + shippingCost;
 
   // --- BETÖLTÉS ÉS AUTH ---
   useEffect(() => {
-    // 1. Felhasználó visszatöltése
     const storedUser = localStorage.getItem('user');
     const token = localStorage.getItem('token');
 
@@ -59,19 +55,16 @@ function App() {
         setUser(u);
         setContactData({ email: u.email, name: u.username, phone: '' });
       } catch (e) {
-        console.error("Hiba a user betöltésekor", e);
-        localStorage.removeItem('user'); // Hibás adat törlése
+        localStorage.removeItem('user');
       }
     }
     setLoading(false);
 
-    // 2. Termékek lekérése
     axios.get(`${API_URL}/magnets`)
       .then(res => setMagnets(res.data))
       .catch(err => console.error("Hiba a termékeknél:", err));
   }, []);
 
-  // --- KOSÁR FUNKCIÓK ---
   const addToCart = (magnet) => {
     const existingItem = cart.find(item => item._id === magnet._id);
     if (existingItem) {
@@ -81,7 +74,7 @@ function App() {
       setCart([...cart, { ...magnet, quantity: 1 }]);
       toast.success("Kosárba került! 🛒", { autoClose: 1000 });
     }
-    setIsCartOpen(true); // Opcionális: megnyitja a kosarat hozzáadáskor
+    setIsCartOpen(true);
   };
 
   const updateQuantity = (id, delta) => {
@@ -97,7 +90,6 @@ function App() {
     setIsCheckoutOpen(true);
   };
 
-  // --- RENDELÉS LEADÁSA ---
   const placeOrder = async () => {
     if (!termsAccepted) return toast.error("Fogadd el az ÁSZF-et!");
     if (!contactData.name || !contactData.email || !shippingData.city || !shippingData.street) {
@@ -135,7 +127,6 @@ function App() {
     }
   };
 
-  // Input kezelők
   const handleAddressChange = (e) => setShippingData({ ...shippingData, [e.target.name]: e.target.value });
   const handleContactChange = (e) => setContactData({ ...contactData, [e.target.name]: e.target.value });
 
@@ -143,9 +134,7 @@ function App() {
 
   return (
     <BrowserRouter>
-      {/* FONTOS: A paddingTop: 80px biztosítja, hogy a fix Navbar ne takarja ki a tartalmat.
-         A háttérszín (background) az egész alkalmazásra érvényes.
-      */}
+      {/* Fő konténer: PaddingTop a Navbar miatt, modern háttér */}
       <div className="app" style={{ 
         paddingTop: '80px', 
         minHeight: '100vh', 
@@ -154,15 +143,15 @@ function App() {
       }}>
         <ToastContainer position="bottom-right" theme="colored" />
 
-        {/* --- NAVBAR (FIXED TOP) --- */}
+        {/* --- NAVBAR --- */}
         <Navbar 
           user={user} 
           setUser={setUser} 
           cartCount={cart.reduce((acc, item) => acc + item.quantity, 0)} 
-          onCartClick={() => setIsCartOpen(true)} // Ez nyitja meg a kosarat
+          onCartClick={() => setIsCartOpen(true)} 
         />
 
-        {/* --- FŐ TARTALOM --- */}
+        {/* --- TARTALOM --- */}
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
           <Routes>
             <Route path="/" element={<Home magnets={magnets.filter(m => m.isFeatured)} addToCart={addToCart} />} />
@@ -179,8 +168,7 @@ function App() {
           </Routes>
         </div>
 
-        {/* --- SIDE CART (JOBB OLDALI SÁV) --- */}
-        {/* Sötét háttér overlay */}
+        {/* --- SIDE CART (Jobb oldali kosár) --- */}
         <div 
           className={`cart-overlay ${isCartOpen ? 'open' : ''}`} 
           style={{ 
@@ -193,13 +181,12 @@ function App() {
           onClick={() => setIsCartOpen(false)}
         ></div>
         
-        {/* Maga a kosár doboz */}
         <div 
           className={`cart-drawer ${isCartOpen ? 'open' : ''}`} 
           style={{ 
             position: 'fixed', 
             top: 0, 
-            right: isCartOpen ? 0 : '-450px', // Animáció: ki-be csúszás
+            right: isCartOpen ? 0 : '-450px', 
             width: '100%', maxWidth: '420px', 
             height: '100vh', 
             backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -249,13 +236,8 @@ function App() {
               </div>
               <button 
                 onClick={startCheckout} 
-                style={{ 
-                  width: '100%', padding: '15px', 
-                  background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)', 
-                  color: 'white', border: 'none', borderRadius: '12px', 
-                  fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
-                  boxShadow: '0 4px 15px rgba(59, 130, 246, 0.4)'
-                }}
+                className="btn-gradient" // Használjuk a globális stílust
+                style={{ width: '100%', fontSize: '16px' }}
               >
                 Tovább a rendeléshez ➡
               </button>
@@ -263,17 +245,16 @@ function App() {
           )}
         </div>
 
-        {/* --- CHECKOUT MODAL (Modernizálva) --- */}
+        {/* --- CHECKOUT MODAL --- */}
         {isCheckoutOpen && (
           <div style={{ 
             position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', 
             backdropFilter: 'blur(5px)', zIndex: 2000, 
             display: 'flex', justifyContent: 'center', alignItems: 'center' 
           }}>
-            <div style={{ 
+            <div className="glass-panel" style={{ 
               width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto',
               backgroundColor: 'white', borderRadius: '20px', padding: '0', 
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
               display: 'flex', flexDirection: 'column'
             }}>
               
@@ -283,8 +264,7 @@ function App() {
               </div>
 
               <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '25px' }}>
-                
-                {/* 1. Kapcsolattartó */}
+                {/* Űrlapok... (Kapcsolat, Cím, Fizetés) */}
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
                   <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>👤 Kapcsolattartó</h3>
                   <div style={{ display: 'grid', gap: '15px' }}>
@@ -296,7 +276,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* 2. Szállítás */}
                 <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px' }}>
                   <h3 style={{ margin: '0 0 15px 0', fontSize: '16px' }}>📍 Szállítási cím</h3>
                   <div style={{ display: 'grid', gap: '15px' }}>
@@ -309,7 +288,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* 3. Fizetés */}
                 <div>
                   <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>💳 Fizetési mód</h3>
                   <div style={{ display: 'flex', gap: '15px' }}>
@@ -324,7 +302,6 @@ function App() {
                   </div>
                 </div>
 
-                {/* 4. Egyedi képek */}
                 <div>
                   <h3 style={{ margin: '0 0 10px 0', fontSize: '16px' }}>🖼️ Egyedi képek (Opcionális)</h3>
                   <div style={{ border: '2px dashed #cbd5e1', padding: '20px', borderRadius: '12px', textAlign: 'center', cursor: 'pointer', background: '#fdfbf7' }}>
@@ -333,48 +310,30 @@ function App() {
                   </div>
                 </div>
 
-                {/* 5. Megjegyzés */}
                 <textarea rows="2" placeholder="Megjegyzés a futárnak vagy nekünk..." value={orderNote} onChange={(e) => setOrderNote(e.target.value)} style={{ ...inputStyle, fontFamily: 'inherit' }}></textarea>
 
-                {/* Összesítés */}
                 <div style={{ padding: '20px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #bbf7d0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span>Termékek ára:</span>
-                    <span>{cartTotal} Ft</span>
+                    <span>Termékek ára:</span><span>{cartTotal} Ft</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: '#64748b' }}>
-                    <span>Szállítás:</span>
-                    <span>{shippingCost} Ft</span>
+                    <span>Szállítás:</span><span>{shippingCost} Ft</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', fontSize: '20px', borderTop: '1px dashed #86efac', paddingTop: '10px', marginTop: '10px' }}>
-                    <span>Végösszeg:</span>
-                    <span style={{ color: '#15803d' }}>{finalTotal} Ft</span>
+                    <span>Végösszeg:</span><span style={{ color: '#15803d' }}>{finalTotal} Ft</span>
                   </div>
                 </div>
 
-                {/* Legal */}
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13px', color: '#475569', cursor: 'pointer' }}>
                   <input type="checkbox" checked={termsAccepted} onChange={(e) => setTermsAccepted(e.target.checked)} style={{ marginTop: '3px' }} />
-                  <span>Elfogadom az <Link to="/terms" target="_blank" style={{color: '#3b82f6'}}>ÁSZF</Link>-et és az <Link to="/privacy" target="_blank" style={{color: '#3b82f6'}}>Adatvédelmi nyilatkozatot</Link>. Tudomásul veszem, hogy a rendelés fizetési kötelezettséggel jár.</span>
+                  <span>Elfogadom az <Link to="/terms" target="_blank" style={{color: '#3b82f6'}}>ÁSZF</Link>-et és az <Link to="/privacy" target="_blank" style={{color: '#3b82f6'}}>Adatvédelmi nyilatkozatot</Link>.</span>
                 </label>
-
               </div>
 
               <div style={{ padding: '20px 30px', borderTop: '1px solid #eee', background: '#f8fafc', display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
                 <button onClick={() => setIsCheckoutOpen(false)} style={{ padding: '12px 20px', borderRadius: '10px', border: '1px solid #cbd5e1', background: 'white', cursor: 'pointer', fontWeight: '600' }}>Mégse</button>
-                <button 
-                  onClick={placeOrder} 
-                  style={{ 
-                    padding: '12px 30px', borderRadius: '10px', border: 'none', 
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', 
-                    color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px',
-                    boxShadow: '0 4px 10px rgba(16, 185, 129, 0.4)'
-                  }}
-                >
-                  Rendelés Leadása
-                </button>
+                <button onClick={placeOrder} className="btn-gradient">Rendelés Leadása</button>
               </div>
-
             </div>
           </div>
         )}
@@ -414,19 +373,8 @@ function App() {
   );
 }
 
-// Segéd stílusok a tiszta kódért
-const inputStyle = {
-  width: '100%', padding: '12px', borderRadius: '8px', 
-  border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px',
-  transition: 'border 0.2s'
-};
-
-const radioLabelStyle = (checked) => ({
-  flex: 1, padding: '15px', borderRadius: '10px', 
-  border: checked ? '2px solid #3b82f6' : '1px solid #cbd5e1', 
-  background: checked ? '#eff6ff' : 'white', cursor: 'pointer',
-  display: 'flex', alignItems: 'center', fontWeight: checked ? 'bold' : 'normal',
-  transition: '0.2s'
-});
+// Segéd stílusok
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px', transition: 'border 0.2s' };
+const radioLabelStyle = (checked) => ({ flex: 1, padding: '15px', borderRadius: '10px', border: checked ? '2px solid #3b82f6' : '1px solid #cbd5e1', background: checked ? '#eff6ff' : 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: checked ? 'bold' : 'normal', transition: '0.2s' });
 
 export default App;

@@ -59,7 +59,13 @@ const Navbar = ({ user, setUser, cartCount }) => {
   );
 };
 
-const linkStyle = { textDecoration: 'none', color: '#475569', fontWeight: '600', fontSize: '15px', transition: '0.2s' };
+const linkStyle = { 
+  textDecoration: 'none', 
+  color: '#e2e8f0', // Világos szürke/fehér a sötét háttérhez
+  fontWeight: '600', 
+  fontSize: '15px', 
+  transition: '0.2s' 
+};
 const buttonStyle = { border: 'none', padding: '8px 16px', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', transition: '0.2s', fontSize: '14px' };
 
 export default Navbar;
