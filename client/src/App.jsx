@@ -4,7 +4,7 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import Navbar from './components/Navbar'; // Győződj meg róla, hogy ez a helyes elérési út!
+import Navbar from './components/navbar'; // Győződj meg róla, hogy ez a helyes elérési út!
 import ChatWidget from './components/ChatWidget';
 import { API_URL } from './config';
 
