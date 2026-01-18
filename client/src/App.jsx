@@ -363,7 +363,7 @@ function App() {
             </div>
           </div>
           <div style={{ textAlign: 'center', marginTop: '50px', borderTop: '1px solid #eee', paddingTop: '20px', color: '#94a3b8', fontSize: '13px' }}>
-            © 2025 Magic Magnet Hungary. Minden jog fenntartva.
+            © 2026 Magic Magnet Hungary. Minden jog fenntartva.
           </div>
         </footer>
 
