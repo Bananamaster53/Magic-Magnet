@@ -1,0 +1,1 @@
+A Magic Magnet egy egyedi webes hobbi projekt. Különlegessége, hogy a tervezés és a funkcionális implementáció során aktívan integráltam modern mesterséges intelligencia eszközöket a kódgenerálás és a fejlesztés felgyorsítása érdekében. A projekt egyben egy gyakorlati lépcsőfok is volt a nyílt forráskódú verziókövetés és a Git/GitHub munkafolyamatok elsajátításában.
