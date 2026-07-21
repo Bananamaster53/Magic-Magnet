@@ -220,8 +220,8 @@ function App() {
               <h4>Kapcsolat</h4>
               <ul>
                 <li>
-                  <a href="https://maps.app.goo.gl/kGofgeBBSasnqxBKA" target="_blank" rel="noreferrer">
-                    📍 7431 Juta, Szőlőhegy u.
+                  <a href="https://maps.app.goo.gl/8ccmWBfnNKZgmABv8" target="_blank" rel="noreferrer">
+                    📍 7561 Nagybajom
                   </a>
                 </li>
                 <li>
@@ -230,8 +230,8 @@ function App() {
                   </a>
                 </li>
                 <li>
-                  <a href="tel:+36205086108">
-                    📞 +36 20 508 6108
+                  <a href="tel:+36307232346">
+                    📞 +36 30 723 2346
                   </a>
                 </li>
               </ul>
@@ -240,9 +240,9 @@ function App() {
             <div className="footer-col">
               <h4>Kövess minket</h4>
               <div className="social-icons">
-                <a href="https://www.facebook.com/magicmagnethungary?locale=hu_HU" target="_blank" rel="noreferrer">Facebook</a> • 
-                <a href="https://www.instagram.com/magicmagnethungary?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" target="_blank" rel="noreferrer"> Instagram</a> • 
-                <a href="https://www.tiktok.com/@magicmagnethungary?is_from_webapp=1&sender_device=pc" target="_blank" rel="noreferrer"> TikTok</a>
+                <a href="https://www.facebook.com/" target="_blank" rel="noreferrer">Facebook</a> • 
+                <a href="https://www.instagram.com/" target="_blank" rel="noreferrer"> Instagram</a> • 
+                <a href="https://www.tiktok.com/" target="_blank" rel="noreferrer"> TikTok</a>
               </div>
             </div>
 
