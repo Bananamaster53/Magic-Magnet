@@ -154,7 +154,7 @@ app.post('/api/orders', auth, upload.array('customImages', 10), async (req, res)
         <hr />
         ${isTransfer ? `
           <h3>💳 Fizetési információk</h3>
-          <p>Név: Mátés Marcell | Számlaszám: 11773432-01615449 | Összeg: ${orderInfo.totalAmount} Ft</p>
+          <p>Név: Mátés Marcell | Számlaszám: 12345678-01234567 | Összeg: ${orderInfo.totalAmount} Ft</p>
         ` : `<p>A végösszeget (${orderInfo.totalAmount} Ft) a futárnál tudod rendezni.</p>`}
       `
     };
